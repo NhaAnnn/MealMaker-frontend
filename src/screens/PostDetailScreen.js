@@ -3,54 +3,62 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
-  ScrollView,
   Image,
   TouchableOpacity,
-  Animated, // <-- 1. Import Animated
-  Platform, // <-- 2. Import Platform
+  Animated,
+  Platform,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { useBlogAPI } from "../hook/useBlogs";
 
-// --- Màu sắc ---
-const DARK_BLUE = "#003A70";
-const BACKGROUND_LIGHT = "#F0F3F6";
+// --- Colors ---
+const DARK_BLUE = "#3D2C1C";
+const BACKGROUND_LIGHT = "#F9EBD7";
 const TEXT_DARK = "#2C3E50";
-const PRIMARY_BLUE = "#007AFF";
+const PRIMARY_BLUE = "#AB9574";
+const GREEN = "#2ECC71";
+const ORANGE = "#F39C12";
+const RED = "#E74C3C";
 
-// --- 3. (MỚI) Thêm hằng số cho Animation ---
-// Chiều cao của ảnh
+// --- Animation Constants ---
 const HEADER_MAX_HEIGHT = 280;
-// (SỬA LẠI) Giảm chiều cao header khi cuộn
-const HEADER_MIN_HEIGHT = 50; // <-- Giảm từ 60 xuống 50
-// Vị trí bắt đầu mờ
+const HEADER_MIN_HEIGHT = 50;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
-// Lấy chiều cao thanh trạng thái
 const STATUS_BAR_HEIGHT =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
-// --- Kết thúc hằng số ---
+const FADE_START_POINT = HEADER_SCROLL_DISTANCE * 0.3;
+const FADE_END_POINT = HEADER_SCROLL_DISTANCE * 0.6;
+// --- End Constants ---
 
-// (Component getDifficultyText giữ nguyên)
-const getDifficultyText = (score) => {
-  if (!score) return "Chưa rõ";
-  if (score <= 1.5) return "Rất Dễ";
-  if (score <= 3.0) return "Trung bình";
-  return "Khó";
+// Difficulty Component (Translated)
+const getScoreColor = (value, type) => {
+  if (type === "Difficulty") {
+    if (value <= 2) return GREEN;
+    if (value <= 4) return ORANGE;
+    return RED;
+  }
+  if (type === "Time") {
+    if (value <= 25) return GREEN;
+    if (value <= 60) return ORANGE;
+    return RED;
+  }
+  return TEXT_DARK;
 };
 
-// (Component InfoBox giữ nguyên)
-const InfoBox = ({ icon, label, value }) => (
-  <View style={styles.infoBox}>
-    <Ionicons name={icon} size={24} color={PRIMARY_BLUE} />
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
+const InfoBox = ({ icon, label, value, score }) => {
+  const color = getScoreColor(score, label);
+  return (
+    <View style={styles.infoBox}>
+      <Ionicons name={icon} size={24} color={color} />
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={[styles.infoValue, { color: color }]}>{value}</Text>
+    </View>
+  );
+};
 
-// --- (MỚI) Component hiển thị danh sách chuyên nghiệp ---
-// Component cho Nguyên liệu (dùng icon chấm)
+// Ingredient Component
 const IngredientItem = ({ text }) => (
   <View style={styles.listItem}>
     <Ionicons
@@ -59,72 +67,158 @@ const IngredientItem = ({ text }) => (
       color={PRIMARY_BLUE}
       style={styles.listIcon}
     />
-    {/* Xóa dấu "-" hoặc "*" ở đầu nếu có */}
     <Text style={styles.listText}>{text.replace(/^[\s*-]+\s*/, "")}</Text>
   </View>
 );
 
-// Component cho Hướng dẫn (dùng số thứ tự)
+// Instruction Component
 const InstructionStep = ({ text, step }) => (
   <View style={styles.listItem}>
     <View style={styles.stepNumberContainer}>
       <Text style={styles.stepNumberText}>{step}</Text>
     </View>
-    {/* Xóa số "1. " hoặc "2. " ở đầu nếu có */}
     <Text style={styles.listText}>{text.replace(/^[\s*\d\.]+\s*/, "")}</Text>
   </View>
 );
-// --- Kết thúc Component mới ---
+
+// Tag Component (NEW)
+const TagItem = ({ text }) => (
+  <View style={styles.tagPill}>
+    <Text style={styles.tagText}>#{text}</Text>
+  </View>
+);
+
+const ReviewStats = ({ author, ratingCount, badRatingCount, timestamp }) => {
+  const totalRatings = ratingCount + badRatingCount;
+  const correctPercentage =
+    totalRatings > 0 ? (ratingCount / totalRatings) * 100 : 0;
+
+  return (
+    <View style={styles.reviewStatsContainer}>
+      {/* Hàng 1: Tác giả và Dấu thời gian */}
+      <Text style={styles.author}>
+        <Text style={{ fontWeight: "600", color: TEXT_DARK }}>
+          Posted by: {author || "User"}
+        </Text>
+        {timestamp && <Text style={styles.timestampText}> | {timestamp}</Text>}
+      </Text>
+
+      {/* --- Thanh Tỷ Lệ (Rating Ratio Bar) --- */}
+      <View style={styles.ratioBarWrapper}>
+        <View style={styles.ratioBarBackground}>
+          <View
+            style={[styles.ratioBarFill, { width: `${correctPercentage}%` }]}
+          />
+        </View>
+
+        {/* Hàng 2: Tổng quan và Số lượng */}
+        <View style={styles.reviewCountsRow}>
+          <Text style={styles.totalRatingsText}>
+            Total Reviews:{" "}
+            <Text style={{ fontWeight: "bold", color: DARK_BLUE }}>
+              {totalRatings}
+            </Text>
+          </Text>
+
+          {/* Đánh giá Tích cực (Correct) */}
+          <View style={styles.reviewStatBox}>
+            <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+            <Text style={[styles.reviewStatValue, { color: GREEN }]}>
+              {ratingCount || 0}
+            </Text>
+          </View>
+
+          {/* Dấu phân cách */}
+          <Text style={styles.separator}>/</Text>
+
+          {/* Đánh giá Tiêu cực (Needs Review) */}
+          <View style={styles.reviewStatBox}>
+            <Ionicons name="alert-circle" size={16} color={RED} />
+            <Text style={[styles.reviewStatValue, { color: RED }]}>
+              {badRatingCount || 0}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+};
 
 export default function PostDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
+  const [isFavorite, setIsFavorite] = useState(
+    route.params?.post?.user_vote?.is_liked || false
+  );
 
-  // (Giả lập) Nút yêu thích
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  // --- 4. (MỚI) Setup Animated ---
-  // useRef để giữ giá trị cuộn
+  const { blogLike } = useBlogAPI();
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // (SỬA LẠI) Thay đổi logic mờ
-  // Điểm bắt đầu mờ (ví dụ: 30% của quãng đường cuộn)
-  const FADE_START_POINT = HEADER_SCROLL_DISTANCE * 0.3;
-  // Điểm kết thúc mờ (ví dụ: 60% của quãng đường cuộn)
-  const FADE_END_POINT = HEADER_SCROLL_DISTANCE * 0.6;
-
-  // Hiệu ứng mờ cho Header (nền xanh) VÀ Nút 2 (màu trắng)
   const headerOpacity = scrollY.interpolate({
     inputRange: [FADE_START_POINT, FADE_END_POINT],
-    outputRange: [0, 1], // Mờ từ 0 -> 1 trong khoảng này
+    outputRange: [0, 1],
     extrapolate: "clamp",
   });
 
-  // Hiệu ứng mờ cho Nút 1 (nền trắng mờ)
   const iconOpacity = scrollY.interpolate({
-    // (SỬA LẠI) Logic mờ không chồng chéo
     inputRange: [0, FADE_START_POINT],
-    outputRange: [1, 0], // Mờ từ 1 -> 0
+    outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
   const { post } = route.params;
 
-  // (MỚI) Tách chuỗi Nguyên liệu và Hướng dẫn
-  const ingredientsList = post.ingredients
-    ? post.ingredients.split("\n").filter((item) => item.trim().length > 0)
+  const ingredientsList = post?.recipe.ingredients_list
+    ? post.recipe.ingredients_list_fixed
+        .join("\n") // <-- SỬ DỤNG .join("\n") ĐỂ CHUYỂN MẢNG THÀNH CHUỖI
+        .split("\n")
+        .filter((item) => item.trim().length > 0)
     : [];
 
-  const instructionsList = post.instructions
-    ? post.instructions.split("\n").filter((item) => item.trim().length > 0)
+  const instructionsList = post?.recipe.instructions
+    ? post.recipe.instructions
+        .join("\n") // <-- SỬ DỤNG .join("\n") ĐỂ CHUYỂN MẢNG THÀNH CHUỖI
+        .split("\n")
+        .filter((item) => item.trim().length > 0)
     : [];
+
+  // Lấy danh sách tags (Giả định post.tags là array)
+  const tagsList = post?.recipe.tags || [];
+
+  const onLikePress = async (isCurrentlyLiked) => {
+    // Ngăn chặn hành động nếu không có ID bài đăng
+    if (!post || !post.id) {
+      console.error("Post ID is missing.");
+      return;
+    }
+
+    console.log(
+      `Calling API to ${!isCurrentlyLiked ? "UNLIKE" : "LIKE"} post ID: ${
+        post.id
+      }`
+    );
+
+    setIsFavorite(isCurrentlyLiked); // Cập nhật trạng thái local
+
+    try {
+      await blogLike({
+        blogId: post.id,
+        is_liked: isCurrentlyLiked,
+      });
+
+      console.log(
+        `Successfully ${!isCurrentlyLiked ? "unliked" : "liked"} post.`
+      );
+    } catch (error) {
+      console.error("Error toggling like status:", error.message);
+      // Hiển thị thông báo lỗi cho người dùng (Ví dụ: Alert.alert("Lỗi", "Không thể cập nhật trạng thái like. Vui lòng thử lại."));
+    }
+  };
 
   if (!post) {
-    // Code khi không có 'post'
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.safeArea}>
         <StatusBar barStyle="light-content" backgroundColor={DARK_BLUE} />
-        {/* (SỬA LẠI) Dùng style headerButtons cho hài hòa */}
         <View style={[styles.headerButtons, { top: STATUS_BAR_HEIGHT }]}>
           <TouchableOpacity
             style={styles.headerButton}
@@ -134,34 +228,28 @@ export default function PostDetailScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.emptyContainer}>
-          <Text>Không tìm thấy bài đăng.</Text>
+          <Text>Post not found.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    // (SỬA LẠI) Dùng View thường thay vì SafeAreaView
     <View style={styles.safeArea}>
       <StatusBar
         barStyle="light-content"
-        backgroundColor="transparent" // <-- Nền trong suốt
-        translucent={true} // <-- Cho phép nội dung chạy sau
+        backgroundColor="transparent"
+        translucent={true}
       />
 
-      {/* --- 5. (MỚI) Header động --- */}
-      {/* Nền xanh mờ dần */}
       <Animated.View
         style={[styles.headerContainer, { opacity: headerOpacity }]}
       />
 
-      {/* Các nút (luôn ở trên) */}
       <View style={styles.headerButtons}>
-        {/* (SỬA LẠI) Bọc các nút Back vào 1 View */}
         <View style={styles.buttonContainer}>
-          {/* Nút 1: Nền trắng (chưa cuộn) */}
           <Animated.View
-            style={[{ opacity: iconOpacity, position: "absolute" }]}
+            style={[{ opacity: iconOpacity }, styles.iconAbsolute]}
           >
             <TouchableOpacity
               style={[styles.headerButton, styles.iconBack]}
@@ -171,8 +259,9 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Nút 2: Màu trắng (đã cuộn) */}
-          <Animated.View style={[{ opacity: headerOpacity }]}>
+          <Animated.View
+            style={[{ opacity: headerOpacity }, styles.iconAbsolute]}
+          >
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => navigation.goBack()}
@@ -182,15 +271,15 @@ export default function PostDetailScreen() {
           </Animated.View>
         </View>
 
-        {/* (SỬA LẠI) Bọc các nút Tim vào 1 View */}
+        {/* === NÚT HEART (SỬA LỖI JUMP) === */}
         <View style={styles.buttonContainer}>
-          {/* Nút 1: Nền trắng (chưa cuộn) */}
+          {/* Trạng thái 1: Nền trắng (trước khi cuộn) */}
           <Animated.View
-            style={[{ opacity: iconOpacity, position: "absolute" }]}
+            style={[{ opacity: iconOpacity }, styles.iconAbsolute]}
           >
             <TouchableOpacity
               style={[styles.headerButton, styles.iconBack]}
-              onPress={() => setIsFavorite(!isFavorite)}
+              onPress={() => onLikePress(!isFavorite)}
             >
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
@@ -200,11 +289,12 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Nút 2: Màu trắng (đã cuộn) */}
-          <Animated.View style={[{ opacity: headerOpacity }]}>
+          <Animated.View
+            style={[{ opacity: headerOpacity }, styles.iconAbsolute]}
+          >
             <TouchableOpacity
               style={styles.headerButton}
-              onPress={() => setIsFavorite(!isFavorite)}
+              onPress={() => onLikePress(!isFavorite)}
             >
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
@@ -216,75 +306,90 @@ export default function PostDetailScreen() {
         </View>
       </View>
 
-      {/* --- 6. (MỚI) Animated.ScrollView --- */}
       <Animated.ScrollView
         style={styles.container}
-        scrollEventThrottle={16} // Bắt sự kiện cuộn
+        scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true } // <-- 7. (SỬA LỖI) Bật Native Driver
+          { useNativeDriver: true }
         )}
       >
-        {/* Ảnh (nằm trên cùng) */}
         <Image
           source={{
-            uri: "https://images.pexels.com/photos/2338407/pexels-photo-2338407.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+            uri:
+              post.image_url ||
+              "https://images.pexels.com/photos/2338407/pexels-photo-2338407.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
           }}
           style={styles.image}
         />
 
-        {/* Phần nội dung (được đẩy lên trên 1 chút) */}
         <View style={styles.contentContainer}>
-          {/* Tiêu đề và Tác giả */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{post.title}</Text>
-            <Text style={styles.author}>
-              Đăng bởi: {post.author || "Người dùng"}
+
+            {/* --- HIỂN THỊ TAGS (MỚI) --- */}
+            {tagsList.length > 0 && (
+              <View style={styles.tagsContainer}>
+                {tagsList.map((tag, index) => (
+                  <TagItem key={index} text={tag} />
+                ))}
+              </View>
+            )}
+
+            <ReviewStats
+              author={post.author}
+              ratingCount={post.rating}
+              badRatingCount={post.bad_rating}
+              timestamp={post.timestamp} // Giả định trường timestamp tồn tại
+            />
+            <Text style={styles.description}>
+              {post.description || "Author has not provided a description."}
             </Text>
           </View>
 
-          {/* Thông tin Thời gian và Độ khó */}
+          {/* Time and Difficulty Info */}
           <View style={styles.infoContainer}>
             <InfoBox
               icon="time-outline"
-              label="Thời gian"
-              value={`${post.time_minutes || "?"} phút`}
+              label="Time"
+              value={`${post.recipe.time_minutes || "?"} mins`}
+              score={post.recipe.time_minutes}
             />
             <InfoBox
               icon="podium-outline"
-              label="Độ khó"
-              value={getDifficultyText(post.difficulty_score)}
+              label="Difficulty"
+              value={post.difficulty_score}
+              score={post.difficulty_score}
             />
           </View>
 
-          {/* (SỬA LẠI) Nội dung chi tiết */}
+          {/* Detailed Content */}
           <View style={styles.content}>
-            <Text style={styles.sectionTitle}>Mô tả</Text>
+            <Text style={styles.sectionTitle}>Description</Text>
             <Text style={styles.description}>
-              {post.description || "Tác giả chưa cung cấp mô tả."}
+              {post.recipe.description ||
+                "Author has not provided a description."}
             </Text>
 
-            <Text style={styles.sectionTitle}>Nguyên liệu</Text>
+            <Text style={styles.sectionTitle}>Ingredients</Text>
             {ingredientsList.length > 0 ? (
-              // Dùng map để render danh sách
               ingredientsList.map((item, index) => (
                 <IngredientItem key={index} text={item} />
               ))
             ) : (
               <Text style={styles.description}>
-                Tác giả chưa cung cấp nguyên liệu.
+                Author has not provided ingredients.
               </Text>
             )}
 
-            <Text style={styles.sectionTitle}>Hướng dẫn nấu</Text>
+            <Text style={styles.sectionTitle}>Cooking Instructions</Text>
             {instructionsList.length > 0 ? (
-              // Dùng map để render danh sách
               instructionsList.map((item, index) => (
                 <InstructionStep key={index} text={item} step={index + 1} />
               ))
             ) : (
               <Text style={styles.description}>
-                Tác giả chưa cung cấp hướng dẫn.
+                Author has not provided instructions.
               </Text>
             )}
           </View>
@@ -295,76 +400,79 @@ export default function PostDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: BACKGROUND_LIGHT }, // Nền sáng
+  safeArea: { flex: 1, backgroundColor: BACKGROUND_LIGHT },
   container: {
     flex: 1,
-    zIndex: 1, // (SỬA LỖI) Nội dung (1)
+    zIndex: 1,
   },
 
-  // --- (SỬA LẠI) STYLES CHO HEADER ĐỘNG ---
   headerContainer: {
-    // Nền xanh
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     backgroundColor: DARK_BLUE,
-    height: HEADER_MIN_HEIGHT + STATUS_BAR_HEIGHT, // Chiều cao = 50 + thanh trạng thái
-    zIndex: 2, // Nền (2)
+    height: HEADER_MIN_HEIGHT + STATUS_BAR_HEIGHT,
+    zIndex: 2,
   },
   headerButtons: {
-    // Các nút
     position: "absolute",
-    top: STATUS_BAR_HEIGHT, // Bắt đầu bên dưới thanh trạng thái
+    top: STATUS_BAR_HEIGHT,
     left: 0,
     right: 0,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center", // Căn giữa
+    alignItems: "center",
     paddingHorizontal: 15,
-    zIndex: 3, // Nút (3)
-    height: HEADER_MIN_HEIGHT, // Chiều cao = 50
+    zIndex: 3,
+    height: HEADER_MIN_HEIGHT,
   },
-  // (MỚI) Container để bọc 2 nút (giúp xếp chồng)
   buttonContainer: {
-    width: 34, // Đặt kích thước cố định
-    height: 34, // (34x34)
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // FIX: Đảm bảo hai nút chồng lên nhau hoàn hảo
+  iconAbsolute: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: "center",
     justifyContent: "center",
   },
   headerButton: {
-    // Nút bấm
-    padding: 5, // Vùng bấm
+    padding: 5,
     alignItems: "center",
     justifyContent: "center",
   },
   iconBack: {
-    // Nền trắng mờ cho icon
     backgroundColor: "rgba(255, 255, 255, 0.7)",
-    borderRadius: 17, // (SỬA LẠI) Bo tròn
+    borderRadius: 17,
     padding: 4,
-    // (XÓA) position: 'absolute' từ đây
   },
-  // --- KẾT THÚC HEADER ĐỘNG ---
+  // --- END DYNAMIC HEADER STYLES ---
 
   image: {
     width: "100%",
-    height: HEADER_MAX_HEIGHT, // Ảnh nền
+    height: HEADER_MAX_HEIGHT,
     resizeMode: "cover",
   },
 
   contentContainer: {
-    backgroundColor: BACKGROUND_LIGHT, // Nền chính
-    marginTop: -20, // Kéo nội dung lên trên ảnh 1 chút
+    backgroundColor: BACKGROUND_LIGHT,
+    marginTop: -20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    minHeight: 500, // Đảm bảo luôn có thể cuộn
+    minHeight: 500,
   },
 
   titleContainer: {
     paddingVertical: 20,
     paddingHorizontal: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#F9EBD7",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
@@ -374,6 +482,30 @@ const styles = StyleSheet.create({
     color: TEXT_DARK,
     marginBottom: 8,
   },
+  // --- NEW STYLES FOR TAGS ---
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginVertical: 5,
+    marginBottom: 10,
+  },
+  tagPill: {
+    backgroundColor: "#ffc06252", // Nền nhạt
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: PRIMARY_BLUE + "50",
+  },
+  tagText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: " #d8bb90ff",
+  },
+  // --- END TAG STYLES ---
+
   author: {
     fontSize: 15,
     color: "gray",
@@ -384,7 +516,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     paddingVertical: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#F9EBD7",
     borderBottomWidth: 10,
     borderBottomColor: BACKGROUND_LIGHT,
     marginTop: 1,
@@ -401,59 +533,57 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 16,
     fontWeight: "bold",
-    color: TEXT_DARK,
     marginTop: 3,
   },
 
   content: {
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#F9EBD7",
     paddingTop: 10,
-    paddingBottom: 40, // (MỚI) Thêm padding dưới
+    paddingBottom: 40,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: TEXT_DARK,
     marginTop: 15,
-    marginBottom: 15, // (MỚI) Tăng margin
+    marginBottom: 15,
     borderBottomWidth: 2,
     borderBottomColor: PRIMARY_BLUE,
     paddingBottom: 5,
   },
   description: {
-    // Dùng cho "Mô tả"
     fontSize: 16,
     lineHeight: 25,
     color: "#333",
-    marginBottom: 10, // (MỚI) Thêm margin
+    marginBottom: 10,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: BACKGROUND_LIGHT, // Thêm nền
+    backgroundColor: BACKGROUND_LIGHT,
   },
 
-  // --- (MỚI) STYLES CHO DANH SÁCH ---
+  // --- LIST STYLES ---
   listItem: {
     flexDirection: "row",
-    alignItems: "flex-start", // Căn trên
-    marginBottom: 15, // Khoảng cách giữa các mục
+    alignItems: "flex-start",
+    marginBottom: 15,
   },
   listIcon: {
     marginRight: 12,
-    marginTop: 5, // Căn icon với dòng chữ đầu
+    marginTop: 5,
     color: PRIMARY_BLUE,
   },
   listText: {
-    flex: 1, // Quan trọng
+    flex: 1,
     fontSize: 16,
     lineHeight: 25,
     color: "#333",
   },
   stepNumberContainer: {
-    width: 26, // Kích thước vòng tròn số
+    width: 26,
     height: 26,
     borderRadius: 13,
     backgroundColor: PRIMARY_BLUE,
@@ -467,5 +597,65 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
-  // --- KẾT THÚC STYLES MỚI ---
+  // --- NEW/UPDATED STYLES FOR Review Stats ---
+  reviewStatsContainer: {
+    marginTop: 5,
+    paddingVertical: 5,
+    borderTopWidth: 1, // Tách biệt khỏi tiêu đề
+    borderTopColor: BACKGROUND_LIGHT,
+    paddingTop: 15,
+  },
+  author: {
+    fontSize: 14, // Giảm cỡ chữ tác giả
+    color: "gray",
+    fontStyle: "italic",
+    marginBottom: 10,
+  },
+  timestampText: {
+    fontSize: 14,
+    color: "gray",
+    fontStyle: "italic",
+  },
+  ratioBarWrapper: {
+    marginTop: 5,
+    marginBottom: 10,
+  },
+  ratioBarBackground: {
+    height: 6,
+    backgroundColor: RED + "40", // Nền màu đỏ nhạt (tỷ lệ đánh giá xấu)
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  ratioBarFill: {
+    height: "100%",
+    backgroundColor: GREEN, // Thanh màu xanh lá (tỷ lệ đánh giá tốt)
+    borderRadius: 3,
+  },
+  reviewCountsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Phân bổ đều các phần tử
+  },
+  totalRatingsText: {
+    fontSize: 14,
+    color: "gray",
+    fontWeight: "500",
+    flex: 1, // Chiếm không gian còn lại
+  },
+  reviewStatBox: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  reviewStatValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 5,
+  },
+  separator: {
+    fontSize: 16,
+    color: "gray",
+    marginHorizontal: 5,
+    fontWeight: "300",
+  },
 });

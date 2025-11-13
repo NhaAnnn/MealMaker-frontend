@@ -2,19 +2,27 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 const RecipeCard = ({ recipe, onPress }) => {
+  // Lấy 3 nguyên liệu đầu tiên từ ingredients_list để làm "Main Ingredients"
+  const primaryIngredients = recipe.ingredients_list
+    ? recipe.ingredients_list.slice(0, 3).join(", ")
+    : "No ingredients listed";
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.header}>
-        <Text style={styles.title}>{recipe.name}</Text>
-        <Text style={styles.timeTag}>🕒 {recipe.time_minutes} phút</Text>
+        {/* Giả định trường tên công thức trong mockData là 'title', không phải 'name' */}
+        <Text style={styles.title}>{recipe.title}</Text>
       </View>
       <View style={styles.metaContainer}>
+        <Text style={styles.timeTag}>🕒 {recipe.time_minutes} min</Text>
+
         <Text style={styles.metaText}>
-          ⭐ Độ khó: {recipe.difficulty_score}/5.0
+          ⭐ Difficulty: {recipe.difficulty_score}/5.0
         </Text>
       </View>
+      {/* Sửa: Sử dụng primaryIngredients đã xử lý */}
       <Text style={styles.ingredients}>
-        Nguyên liệu chính: {recipe.primary_ingredients.join(", ")}
+        Main ingredients: {primaryIngredients}
       </Text>
     </TouchableOpacity>
   );
@@ -22,12 +30,12 @@ const RecipeCard = ({ recipe, onPress }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#f0f8ff",
+    backgroundColor: "rgba(255, 255, 255, 1)",
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
     borderLeftWidth: 5,
-    borderLeftColor: "#007BFF",
+    borderLeftColor: "#3D2C1C",
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -43,15 +51,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#007BFF",
+    color: "#3D2C1C",
   },
   timeTag: {
     fontSize: 14,
-    color: "#28a745",
+    color: "#967a00ff",
     fontWeight: "600",
+    marginRight: 25,
   },
-  metaContainer: { marginBottom: 8 },
-  metaText: { fontSize: 13, color: "#6c757d" },
+  metaContainer: {
+    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+  },
+  metaText: { fontSize: 14, color: "#9b7f00ff", fontWeight: "600" },
   ingredients: { fontSize: 14, color: "#333", fontStyle: "italic" },
 });
 

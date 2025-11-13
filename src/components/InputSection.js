@@ -15,13 +15,17 @@ const InputSection = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.headerText}>Bạn có gì? (Tối đa 3 Nguyên liệu)</Text>
+      {/* Dịch: Bạn có gì? (Tối đa 3 Nguyên liệu) */}
+      <Text style={styles.headerText}>
+        What do you have? (Max 3 Ingredients)
+      </Text>
       <View style={styles.inputList}>
         {ingredients.map((ing, index) => (
           <TextInput
             key={index}
             style={styles.input}
-            placeholder={`Nguyên liệu ${index + 1}`}
+            // Dịch: Nguyên liệu
+            placeholder={`Ingredient ${index + 1}`}
             value={ing}
             onChangeText={(value) => onIngredientChange(index, value)}
             placeholderTextColor="#aaa"
@@ -30,18 +34,22 @@ const InputSection = ({
       </View>
 
       <TouchableOpacity style={styles.primaryButton} onPress={onSearch}>
-        <Text style={styles.primaryButtonText}>Tìm công thức</Text>
+        {/* Dịch: Tìm công thức */}
+        <Text style={styles.primaryButtonText}>Find Recipes</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.secondaryButton} onPress={onRandom}>
-        <Text style={styles.secondaryButtonText}>Hôm nay ăn gì? (Random)</Text>
+        {/* Dịch: Hôm nay ăn gì? (Random) */}
+        <Text style={styles.secondaryButtonText}>
+          What to eat today? (Random)
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // ... Thêm styles từ hướng dẫn trước đó hoặc tự định nghĩa ...
+  // ... Add styles from previous guide or self-defined ...
   container: {
     paddingVertical: 15,
     borderBottomWidth: 1,
@@ -65,7 +73,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   primaryButton: {
-    backgroundColor: "#007BFF",
+    backgroundColor: "#876a3fff",
     padding: 12,
     borderRadius: 5,
     alignItems: "center",
@@ -73,7 +81,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
   secondaryButton: {
-    backgroundColor: "#6c757d",
+    backgroundColor: "#876a3fff",
     padding: 12,
     borderRadius: 5,
     alignItems: "center",

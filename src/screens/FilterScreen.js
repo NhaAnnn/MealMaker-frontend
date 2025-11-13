@@ -3,21 +3,20 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// --- Định nghĩa màu sắc MODERN BLUE ---
-const PRIMARY_BLUE = "#007AFF";
-const DARK_BLUE = "#003A70";
-const BACKGROUND_LIGHT = "#F0F3F6";
-const TEXT_DARK = "#2C3E50";
-const ACCENT_GREEN = "#2ECC71"; // Màu nhấn cho Filter (đồng bộ với HomeScreen)
+// --- Define MODERN BLUE colors ---
+const PRIMARY_BLUE = "#AB9574"; // Bright Blue (Primary color)
+const DARK_BLUE = "#3D2C1C"; // Dark Blue for Header
+const BACKGROUND_LIGHT = "#F9EBD7"; // Very Light Gray Background
+const TEXT_DARK = "#2C3E50"; // Dark Gray Text
+const ACCENT_GREEN = "#D9B263"; // Accent color for Tags
 
-// Component cho Filter Option
+// Component for Filter Option (Kept in English for consistency)
 const FilterOption = ({ title, options, selected, onSelect }) => (
   <View style={styles.filterGroup}>
     <Text style={styles.groupTitle}>{title}</Text>
@@ -53,23 +52,26 @@ export default function FilterScreen({ navigation }) {
     difficulty: [],
   });
 
+  // Dịch các tùy chọn lọc
   const filterData = {
     cuisine: [
-      "Việt Nam",
-      "Nhật Bản",
-      "Hàn Quốc",
-      "Ý",
-      "Thái Lan",
-      "Âu",
-      "Khác",
+      "Vietnamese", // Việt Nam
+      "Japanese", // Nhật Bản
+      "Korean", // Hàn Quốc
+      "Italian", // Ý
+      "Thai", // Thái Lan
+      "European", // Âu
+      "Other", // Khác
     ],
-    time: ["< 15 phút", "15 - 30 phút", "30 - 60 phút", "> 60 phút"],
-    difficulty: ["Dễ", "Trung Bình", "Khó"],
+    time: ["< 15 min", "15 - 30 min", "30 - 60 min", "> 60 min"], // Thời gian nấu
+    difficulty: ["Easy", "Medium", "Hard"], // Độ khó
   };
 
   const handleSelect = (category, option) => {
     setSelectedFilters((prev) => {
       const current = prev[category];
+
+      // Logic for multi-select (allows multiple options per category)
       if (current.includes(option)) {
         return {
           ...prev,
@@ -83,8 +85,9 @@ export default function FilterScreen({ navigation }) {
 
   const handleApply = () => {
     console.log("Applying filters:", selectedFilters);
-    // Logic điều hướng và áp dụng bộ lọc (ví dụ: quay lại màn Khám Phá)
-    navigation.navigate("Khám Phá", { filters: selectedFilters });
+    // Logic navigation and applying filters
+    // Chuyển hướng đến màn hình Explore (đã dịch từ Khám Phá)
+    navigation.navigate("Explore", { filters: selectedFilters });
   };
 
   const handleReset = () => {
@@ -95,14 +98,17 @@ export default function FilterScreen({ navigation }) {
     <View style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={DARK_BLUE} />
 
-      {/* Header đồng bộ */}
-      <View style={styles.headerContainer}>
+      <View
+        style={[styles.headerContainer, { paddingTop: 15, paddingBottom: 15 }]}
+      >
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bộ Lọc Công Thức</Text>
+        {/* Dịch: Bộ Lọc Công Thức */}
+        <Text style={styles.headerTitle}>Recipe Filters</Text>
         <TouchableOpacity onPress={handleReset}>
-          <Text style={styles.resetText}>Đặt lại</Text>
+          {/* Dịch: Đặt lại */}
+          <Text style={styles.resetText}>Reset</Text>
         </TouchableOpacity>
       </View>
 
@@ -111,27 +117,31 @@ export default function FilterScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
+          {/* Dịch: Chọn các tiêu chí... */}
           <Text style={styles.sectionDescription}>
-            Chọn các tiêu chí để tinh chỉnh kết quả tìm kiếm của bạn.
+            Select criteria to refine your search results.
           </Text>
 
           <View style={styles.card}>
             <FilterOption
-              title="Quốc gia/Vùng miền"
+              // Dịch: Quốc gia/Vùng miền
+              title="Cuisine/Region"
               options={filterData.cuisine}
               selected={selectedFilters.cuisine}
               onSelect={(option) => handleSelect("cuisine", option)}
             />
 
             <FilterOption
-              title="Thời gian nấu"
+              // Dịch: Thời gian nấu
+              title="Cooking Time"
               options={filterData.time}
               selected={selectedFilters.time}
               onSelect={(option) => handleSelect("time", option)}
             />
 
             <FilterOption
-              title="Độ khó"
+              // Dịch: Độ khó
+              title="Difficulty"
               options={filterData.difficulty}
               selected={selectedFilters.difficulty}
               onSelect={(option) => handleSelect("difficulty", option)}
@@ -140,13 +150,14 @@ export default function FilterScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* Nút Áp dụng Cố định ở cuối màn hình */}
-      <View style={styles.footer}>
+      {/* Apply Button Fixed at the bottom - APPLY PADDING BOTTOM FROM INSETS */}
+      <View style={[styles.footer, { paddingBottom: +20 }]}>
         <TouchableOpacity
           style={[styles.applyButton, { backgroundColor: PRIMARY_BLUE }]}
           onPress={handleApply}
         >
-          <Text style={styles.applyButtonText}>Áp Dụng Bộ Lọc</Text>
+          {/* Dịch: Áp Dụng Bộ Lọc */}
+          <Text style={styles.applyButtonText}>Apply Filters</Text>
           <Ionicons
             name="checkmark-circle"
             size={20}
@@ -161,20 +172,20 @@ export default function FilterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: BACKGROUND_LIGHT },
-  scrollContent: { paddingBottom: 20 },
+  scrollContent: { paddingBottom: 100 },
   container: {
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  // --- Header ---
+  // --- Header (Safe Area fix applied inline) ---
   headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: DARK_BLUE,
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    height: 60,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   headerTitle: {
     fontSize: 18,
@@ -233,9 +244,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#7F8C8D",
   },
-  // --- Footer/Apply Button ---
+  // --- Footer/Apply Button (Safe Area fix applied inline) ---
   footer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
     backgroundColor: "#fff",

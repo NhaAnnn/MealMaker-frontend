@@ -6,170 +6,193 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
-// Import tất cả các màn hình
+// --- Import các màn hình ---
 import LoginScreen from "./src/screens/LoginScreen";
 import HomeScreen from "./src/screens/HomeScreen";
-import SearchScreen from "./src/screens/SearchScreen";
+import ExploreScreen from "./src/screens/ExploreScreen";
 import RecipeDetailScreen from "./src/screens/RecipeDetailScreen";
 import FridgeScreen from "./src/screens/FridgeScreen";
 import FilterScreen from "./src/screens/FilterScreen";
 import PlanScreen from "./src/screens/PlanScreen";
-import AboutScreen from "./src/screens/AboutScreen";
+import AccountScreen from "./src/screens/AccountScreen";
 import FavoritesScreen from "./src/screens/FavoritesScreen";
 import BlogScreen from "./src/screens/BlogScreen";
 import UploadRecipeScreen from "./src/screens/UploadRecipeScreen";
 import PostDetailScreen from "./src/screens/PostDetailScreen";
+import SignUpScreen from "./src/screens/SignUpScreen";
+import HabitCollectionScreen from "./src/screens/HabitCollectionScreen";
+import ShoppingListDetailScreen from "./src/screens/ShoppingListDetailScreen";
+import LikedPostsScreen from "./src/screens/LikedPostsScreen";
 
-// Giả sử bạn đặt AuthContext trong components
+// --- Import Auth Context ---
 import { AuthProvider, useAuth } from "./src/components/AuthContext";
 
-// Định nghĩa các Navigator
-const HomeStack = createStackNavigator();
-const ExploreStack = createStackNavigator();
+// --- Định nghĩa Navigators ---
 const Tab = createBottomTabNavigator();
-const AppStack = createStackNavigator(); // Stack cấp cao nhất (App Stack)
+const RootStack = createStackNavigator(); // Stack Gốc
+const AuthStack = createStackNavigator(); // Stack cho Đăng nhập/Đăng ký
+const AuthenticatedStack = createStackNavigator(); // Stack cho Luồng ứng dụng đã xác thực
 
-// --- LỖI 1: BẠN CHƯA KHỞI TẠO AuthStack ---
-const AuthStack = createStackNavigator(); // <-- THÊM DÒNG NÀY
-
+// --- Cấu hình chung ---
 const commonScreenOptions = {
-  headerStyle: { backgroundColor: "#E74C3C" },
+  headerStyle: { backgroundColor: "#3D2C1C" }, // Màu nâu
   headerTintColor: "#fff",
   headerTitleStyle: { fontWeight: "bold" },
 };
 
-// --- 1. Home Stack (Chứa HomeMain - không header) ---
-function HomeStackNavigator() {
-  return (
-    <HomeStack.Navigator
-      initialRouteName="HomeMain"
-      screenOptions={{ ...commonScreenOptions, headerShown: false }}
-    >
-      <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-    </HomeStack.Navigator>
-  );
-}
-
-// --- 2. Khám Phá/Tìm Kiếm Stack (Chứa Search và Detail) ---
-function ExploreStackScreen() {
-  return (
-    <ExploreStack.Navigator
-      initialRouteName="RecipeSearch"
-      screenOptions={{ ...commonScreenOptions, headerShown: false }}
-    >
-      <ExploreStack.Screen name="RecipeSearch" component={SearchScreen} />
-    </ExploreStack.Navigator>
-  );
-}
-
-// --- 3. Tab Navigator (Chứa các Tab chính) ---
+// --- 1. Tab Navigator (Màn hình chính có thanh tab) ---
 function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName;
           let rn = route.name;
 
-          if (rn === "Trang Chủ") {
+          if (rn === "Home") {
             iconName = focused ? "home" : "home-outline";
-          } else if (rn === "Khám Phá") {
+          } else if (rn === "Explore") {
             iconName = focused ? "search" : "search-outline";
           } else if (rn === "Blog") {
             iconName = focused ? "newspaper" : "newspaper-outline";
-          } else if (rn === "Kế Hoạch") {
+          } else if (rn === "Plan") {
             iconName = focused ? "calendar" : "calendar-outline";
-          } else if (rn === "Thông Tin") {
-            iconName = focused
-              ? "information-circle"
-              : "information-circle-outline";
+          } else if (rn === "Account") {
+            iconName = focused ? "person-circle" : "person-circle-outline";
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={20} color={color} />;
         },
-        tabBarActiveTintColor: "#007AFF",
+        tabBarActiveTintColor: "#886B47", // Màu active
         tabBarInactiveTintColor: "gray",
         headerShown: false,
         tabBarStyle: {
           height: 60,
           paddingBottom: 5,
           paddingTop: 5,
+          backgroundColor: "#ffe0b4ff",
+          position: "absolute",
+          marginHorizontal: 15,
+          marginBottom: 10,
+          borderRadius: 15,
           borderTopWidth: 0,
-          elevation: 10,
+          borderColor: "#E0E0E0",
+          borderWidth: 1,
           shadowColor: "#000",
-          shadowOpacity: 0.1,
-          shadowRadius: 5,
-          backgroundColor: "#fff",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.25,
+          shadowRadius: 15,
+          elevation: 15,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: "600",
         },
       })}
     >
-      <Tab.Screen name="Trang Chủ" component={HomeStackNavigator} />
-      <Tab.Screen name="Khám Phá" component={SearchScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Explore" component={ExploreScreen} />
       <Tab.Screen name="Blog" component={BlogScreen} />
-      <Tab.Screen name="Kế Hoạch" component={PlanScreen} />
-      <Tab.Screen name="Thông Tin" component={AboutScreen} />
+      <Tab.Screen name="Plan" component={PlanScreen} />
+      <Tab.Screen name="Account" component={AccountScreen} />
     </Tab.Navigator>
   );
 }
 
-// --- 4. Auth Stack (Mới) ---
-// Stack này chỉ chứa màn hình Đăng nhập, Đăng ký
+// --- 2. Auth Stack (Đăng nhập và Đăng ký) ---
 function AuthStackNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
-      {/* <AuthStack.Screen name="Register" component={RegisterScreen} /> */}
+      <AuthStack.Screen name="SignUp" component={SignUpScreen} />
     </AuthStack.Navigator>
   );
 }
 
-// --- 5. App Navigator Chính (Sửa đổi) ---
+// --- 3. Luồng ứng dụng đã xác thực (Authenticated App Flow) ---
+function AuthenticatedAppFlow() {
+  const { hasCompletedHabits } = useAuth(); // Lấy cờ trạng thái từ Context
 
+  // Nếu người dùng MỚI (hasCompletedHabits=false) -> Bắt đầu bằng HabitCollection
+  // Nếu người dùng CŨ (hasCompletedHabits=true) -> Bắt đầu bằng MainTabs
+  const initialRoute = hasCompletedHabits ? "MainTabs" : "HabitCollection";
+
+  // SỬ DỤNG AuthenticatedStack
+  return (
+    <AuthenticatedStack.Navigator
+      initialRouteName={initialRoute}
+      screenOptions={{ headerShown: false }}
+    >
+      {/* 3a. Màn hình Thu thập Thói quen (Chỉ cho người dùng mới) */}
+      <AuthenticatedStack.Screen
+        name="HabitCollection"
+        component={HabitCollectionScreen}
+      />
+
+      {/* 3b. Màn hình Chính (Main Tabs) */}
+      <AuthenticatedStack.Screen name="MainTabs" component={MainTabNavigator} />
+
+      {/* Các màn hình phụ không có tab bar */}
+      <AuthenticatedStack.Screen name="Fridge" component={FridgeScreen} />
+      <AuthenticatedStack.Screen name="Filter" component={FilterScreen} />
+      <AuthenticatedStack.Screen
+        name="RecipeDetail"
+        component={RecipeDetailScreen}
+      />
+      <AuthenticatedStack.Screen name="Favorites" component={FavoritesScreen} />
+      <AuthenticatedStack.Screen
+        name="UploadRecipe"
+        component={UploadRecipeScreen}
+        options={{ presentation: "modal" }}
+      />
+      <AuthenticatedStack.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+      />
+      <AuthenticatedStack.Screen
+        name="ShoppingListDetail"
+        component={ShoppingListDetailScreen}
+        options={{ presentation: "modal" }}
+      />
+
+      <AuthenticatedStack.Screen
+        name="LikedPosts"
+        component={LikedPostsScreen}
+      />
+    </AuthenticatedStack.Navigator>
+  );
+}
+
+// --- 4. App Navigator Gốc (Chọn Auth hay App Flow) ---
 function AppRootNavigator() {
-  const { userToken, isLoading } = useAuth();
+  const { isLoggedIn, isLoading } = useAuth();
 
-  // Nếu đang kiểm tra token, hiển thị màn hình loading
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#886B47" />
       </View>
     );
   }
 
-  // --- ĐÂY LÀ LOGIC CỐT LỖI ---
+  // SỬ DỤNG RootStack
   return (
-    <AppStack.Navigator screenOptions={{ headerShown: false }}>
-      {userToken == null ? (
-        // Nếu không có token -> Hiển thị Stack Đăng nhập
-        // "Auth" tự động là màn hình đầu tiên
-        <AppStack.Screen name="Auth" component={AuthStackNavigator} />
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      {!isLoggedIn ? (
+        // KHÔNG ĐĂNG NHẬP -> Hiển thị Stack Đăng nhập/Đăng ký
+        <RootStack.Screen name="Auth" component={AuthStackNavigator} />
       ) : (
-        // Nếu có token -> Hiển thị Stack Chính của App
-        // "Main" tự động là màn hình đầu tiên
-        <>
-          <AppStack.Screen name="Main" component={MainTabNavigator} />
-          <AppStack.Screen name="Fridge" component={FridgeScreen} />
-          <AppStack.Screen name="Filter" component={FilterScreen} />
-          <AppStack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-          <AppStack.Screen name="Favorites" component={FavoritesScreen} />
-          <AppStack.Screen
-            name="UploadRecipe"
-            component={UploadRecipeScreen}
-            options={{ presentation: "modal" }}
-          />
-          <AppStack.Screen name="PostDetail" component={PostDetailScreen} />
-        </>
+        // ĐÃ ĐĂNG NHẬP -> Hiển thị Luồng Ứng dụng đã xác thực (Home)
+        <RootStack.Screen
+          name="AuthenticatedFlow"
+          component={AuthenticatedAppFlow}
+        />
       )}
-    </AppStack.Navigator>
+    </RootStack.Navigator>
   );
 }
 
-// --- 6. App component (Cấp cao nhất) ---
+// --- 5. App component (Cấp cao nhất) ---
 export default function App() {
   return (
     <AuthProvider>
@@ -185,5 +208,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#F9EBD7",
   },
 });
