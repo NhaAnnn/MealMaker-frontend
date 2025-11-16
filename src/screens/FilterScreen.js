@@ -129,12 +129,10 @@ export default function FilterScreen({ navigation }) {
     cooking_skill_level: [],
   });
 
-  const { isLoading, error, fetchRecipesByTags, setError } = useRecipes();
+  const { isLoading, error, fetchRecipesByTags } = useRecipes();
   const [hasSearched, setHasSearched] = useState(false); // Toggle Filter Selection
   const [recipes, setRecipes] = useState([]);
   const handleToggleFilter = (categoryKey, tagValue, isSingleSelection) => {
-    if (error) setError(null);
-
     setSelectedFilters((prev) => {
       const current = prev[categoryKey] || [];
       let updated;
@@ -162,10 +160,10 @@ export default function FilterScreen({ navigation }) {
 
     setHasSearched(true);
 
-    if (tags.length === 0) {
-      setError("Please select at least one filter.");
-      return;
-    }
+    // if (tags.length === 0) {
+    //   setError("Please select at least one filter.");
+    //   return;
+    // }
 
     console.log(tags);
     const response = await fetchRecipesByTags(tags, true);
@@ -183,7 +181,7 @@ export default function FilterScreen({ navigation }) {
       properties: [],
       cooking_skill_level: [],
     });
-    setError(null);
+    // setError(null);
     setHasSearched(false);
     setIsModalVisible(false);
   };

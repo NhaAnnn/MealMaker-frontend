@@ -208,8 +208,8 @@ export default function HomeScreen() {
   const loadFeaturedRecipes = useCallback(async () => {
     setIsFeaturedLoading(true);
     try {
-      // const data = await fetchAllRecipes(3);
-      // setFeaturedRecipes(data);
+      const data = await fetchAllRecipes(3);
+      setFeaturedRecipes(data);
     } catch (e) {
       console.error("Error loading featured recipes:", e);
     } finally {
