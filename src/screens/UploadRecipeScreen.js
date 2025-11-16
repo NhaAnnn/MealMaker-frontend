@@ -208,6 +208,8 @@ const DynamicIngredientInput = ({
 const RecipeInfoTab = ({
   recipeTitle,
   setRecipeTitle,
+  recipeDescription,
+  setRecipeDescription,
   time,
   setTime,
   seasonings,
@@ -245,6 +247,15 @@ const RecipeInfoTab = ({
       placeholder="Example: BBQ Honey Glazed Chicken"
       value={recipeTitle}
       onChangeText={setRecipeTitle}
+    />
+
+    <Text style={styles.label}>Recipe Description</Text>
+    <TextInput
+      style={[styles.input, styles.multiline, { minHeight: 80 }]}
+      placeholder="Detailed description of the dish (e.g., taste profile, serving suggestion)..."
+      value={recipeDescription}
+      onChangeText={setRecipeDescription}
+      multiline
     />
 
     {/* Time Input (Full Width - Difficulty REMOVED) */}
@@ -301,6 +312,7 @@ export default function UploadRecipeScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [recipeTitle, setRecipeTitle] = useState("");
+  const [recipeDescription, setRecipeDescription] = useState("");
   const [seasonings, setSeasonings] = useState("");
   const [instructions, setInstructions] = useState("");
   const [imageUri, setImageUri] = useState(null);
@@ -454,7 +466,7 @@ export default function UploadRecipeScreen() {
       description: description, // Blog Description
       recipe: {
         title: recipeTitle, // Recipe Name
-        description: description, // Reuse blog description as recipe description (optional)
+        description: recipeDescription, // Reuse blog description as recipe description (optional)
         ingredients_list: finalIngredientsArray, // MAIN INGREDIENTS ONLY
         instructions: instructionsArray,
         time_minutes: parseInt(time, 10),
@@ -535,7 +547,7 @@ export default function UploadRecipeScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={26} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post New Recipe</Text>
+        <Text style={styles.headerTitle}>Post New Blog</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -562,6 +574,8 @@ export default function UploadRecipeScreen() {
           <RecipeInfoTab
             recipeTitle={recipeTitle}
             setRecipeTitle={setRecipeTitle}
+            recipeDescription={recipeDescription}
+            setRecipeDescription={setRecipeDescription}
             time={time}
             setTime={setTime}
             seasonings={seasonings} // Seasonings
@@ -590,7 +604,7 @@ export default function UploadRecipeScreen() {
             {isSubmitting || loading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Post Recipe</Text>
+              <Text style={styles.buttonText}>Post Blog</Text>
             )}
           </TouchableOpacity>
         </ScrollView>

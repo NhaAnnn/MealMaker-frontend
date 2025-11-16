@@ -109,6 +109,10 @@ export default function BlogScreen() {
     }
   };
 
+  const handleBlogRefresh = () => {
+    // Chỉ cần gọi lại hàm tải ban đầu để reset và fetch lại dữ liệu
+    fetchBlogPosts();
+  };
   // Load data when screen is focused
   useFocusEffect(
     useCallback(() => {
@@ -180,6 +184,7 @@ export default function BlogScreen() {
             <PostCard
               post={item}
               onInteract={handleInteraction}
+              onPostUpdated={handleBlogRefresh}
               onPress={() =>
                 navigation.navigate("PostDetail", {
                   postId: item._id || item.id,

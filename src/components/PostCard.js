@@ -76,7 +76,7 @@ const apiBoolToUIState = (isGoodRating) => {
 };
 // -----------------------------------
 
-export default function PostCard({ post }) {
+export default function PostCard({ post, onPostUpdated }) {
   const { isLoggedIn } = useAuth();
   const navigation = useNavigation();
 
@@ -138,6 +138,9 @@ export default function PostCard({ post }) {
           await undoBlogRating({ blogId: post.id });
           setUserInteraction(null); // Đặt lại trạng thái UI thành null
           Alert.alert("Notice", "Rating has been cancelled.");
+
+          // GỌI CALLBACK SAU KHI ĐÁNH GIÁ MỚI THÀNH CÔNG
+          if (onPostUpdated) onPostUpdated();
         } else {
           // Xử lý lỗi nếu cố gắng hủy khi chưa có đánh giá
           throw new Error("No existing rating to cancel.");
@@ -171,6 +174,9 @@ export default function PostCard({ post }) {
           isGoodRating ? `Difficulty score: ${extraData}` : ""
         }`
       );
+
+      // GỌI CALLBACK SAU KHI ĐÁNH GIÁ MỚI THÀNH CÔNG
+      if (onPostUpdated) onPostUpdated();
     } catch (e) {
       console.error("API Error:", e);
       Alert.alert("Error", "Could not update rating, please try again.");
@@ -231,7 +237,7 @@ export default function PostCard({ post }) {
 
         {/* Survey/Poll */}
         <View style={styles.surveyContainer}>
-          <Text>{post.description}</Text>
+          <Text>{post.description_fixed}</Text>
           <Text style={styles.surveyTitle}>Recipe Survey:</Text>
           <View style={styles.buttonRow}>
             {/* Nút Correct: isSelected là TRUE */}

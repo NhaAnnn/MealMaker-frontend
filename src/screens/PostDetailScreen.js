@@ -343,7 +343,8 @@ export default function PostDetailScreen() {
               timestamp={post.timestamp} // Giả định trường timestamp tồn tại
             />
             <Text style={styles.description}>
-              {post.description || "Author has not provided a description."}
+              {post.description_fixed ||
+                "Author has not provided a description."}
             </Text>
           </View>
 
@@ -358,7 +359,7 @@ export default function PostDetailScreen() {
             <InfoBox
               icon="podium-outline"
               label="Difficulty"
-              value={"Rating..."}
+              value={Math.floor(post.diff_score)}
               score={post.difficulty_score}
             />
           </View>

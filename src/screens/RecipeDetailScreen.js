@@ -379,6 +379,7 @@ export default function RecipeDetailScreen({ route }) {
           {/* TITLE & TAGS */}
           <Text style={styles.title}>{recipe.title}</Text>
           <Text style={styles.tags}>{tagsString}</Text>
+          <Text style={styles.description}>{recipe.description}</Text>
 
           {/* META DATA */}
           <MetaInfoCard

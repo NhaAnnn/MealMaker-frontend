@@ -272,7 +272,7 @@ export default function HomeScreen() {
     },
     {
       title: "Skill Quiz", // Lên Kế Hoạch
-      iconName: "bird-outline",
+      iconName: "medal-outline",
       color: "#F1C40F",
       screen: "Quiz",
     },
@@ -411,12 +411,16 @@ export default function HomeScreen() {
 
             <View style={styles.recipeList}>
               {displayRecipes.map((recipe) => (
-                <RecipeCard
+                <View
                   key={recipe.id || recipe._id}
-                  recipe={recipe}
-                  onToggleLike={toggleLike}
-                  onPress={() => handleRecipePress(recipe)}
-                />
+                  style={{ marginBottom: 15 }}
+                >
+                  <RecipeCard
+                    recipe={recipe}
+                    onToggleLike={toggleLike}
+                    onPress={() => handleRecipePress(recipe)}
+                  />
+                </View>
               ))}
 
               {/* No Results Text */}
@@ -451,12 +455,6 @@ export default function HomeScreen() {
                 onPress={() => loadFeaturedRecipes()}
               >
                 <Text style={styles.seeMoreButtonText}>Other recipes</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color="#fff"
-                  style={{ marginLeft: 5 }}
-                />
               </TouchableOpacity>
             )}
           </View>
@@ -635,9 +633,7 @@ const styles = StyleSheet.create({
     borderLeftColor: PRIMARY_BLUE,
     paddingLeft: 10,
   },
-  recipeList: {
-    // Style for recipe list
-  },
+  recipeList: {},
   noRecipesText: {
     textAlign: "center",
     marginTop: 20,

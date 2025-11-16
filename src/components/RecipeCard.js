@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 1)",
     padding: 15,
     borderRadius: 10,
-    marginBottom: 15,
+    // marginBottom: 15,
     borderLeftWidth: 5,
     borderLeftColor: "#3D2C1C",
     elevation: 3,

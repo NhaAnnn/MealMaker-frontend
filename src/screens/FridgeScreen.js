@@ -11,14 +11,17 @@ import {
   Platform,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView, // ⭐️ Đã thêm import SafeAreaView
+  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { useNavigation } from "@react-navigation/native"; // Thêm navigation hook
 
-// Import Hooks
+// Import Hooks & Components
 import { useAuth } from "../components/AuthContext";
 import { useUserUpdateAPI } from "../hook/useUsers";
+import { useRecipes } from "../hook/useRecipes"; // ⭐️ IMPORT useRecipes
+import RecipeCard from "../components/RecipeCard"; // ⭐️ IMPORT RecipeCard
 
 // --- Define MODERN BLUE colors ---
 const PRIMARY_BLUE = "#AB9574";
@@ -26,7 +29,6 @@ const DARK_BLUE = "#3D2C1C";
 const BACKGROUND_LIGHT = "#F9EBD7";
 const TEXT_DARK = "#2C3E50";
 const ACCENT_RED = "#D9534F";
-const SUCCESS_COLOR = "#7F98B2";
 
 // --- STANDARD UNITS LIST ---
 const STANDARD_UNITS = [
@@ -36,7 +38,7 @@ const STANDARD_UNITS = [
   { label: "Piece/Unit (unit)", value: "unit" },
 ];
 
-// Component for Ingredient Item (Giữ nguyên)
+// Component for Ingredient Item
 const IngredientItem = ({
   name,
   quantity,
@@ -87,9 +89,14 @@ const areMapsEqual = (map1, map2) => {
   return true;
 };
 
-export default function FridgeScreen({ navigation }) {
+export default function FridgeScreen() {
+  const navigation = useNavigation(); // ⭐️ Sử dụng useNavigation hook
   const { updateFridge } = useUserUpdateAPI();
   const { userData, isLoading: isAuthLoading, fetchUserData } = useAuth();
+  const userId = userData?._id || userData?.id;
+
+  // ⭐️ HOOK TÌM KIẾM CÔNG THỨC
+  const { searchRecipesByIngredients } = useRecipes();
 
   const [originalFridgeMap, setOriginalFridgeMap] = useState({});
   const [ingredientsMap, setIngredientsMap] = useState({});
@@ -104,7 +111,12 @@ export default function FridgeScreen({ navigation }) {
   const [newQuantity, setNewQuantity] = useState("");
   const [selectedUnit, setSelectedUnit] = useState(STANDARD_UNITS[0].value);
 
-  // --- DATA LOADING AND SYNCHRONIZATION (Giữ nguyên) ---
+  // ⭐️ STATE MỚI CHO TÌM KIẾM
+  const [searchedRecipes, setSearchedRecipes] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchAttempted, setSearchAttempted] = useState(false);
+
+  // --- DATA LOADING AND SYNCHRONIZATION ---
 
   useEffect(() => {
     if (
@@ -148,7 +160,7 @@ export default function FridgeScreen({ navigation }) {
     setIngredientsArray(tempArray);
   }, [ingredientsMap]);
 
-  // --- MANUAL SAVE FUNCTIONALITY (Giữ nguyên) ---
+  // --- MANUAL SAVE FUNCTIONALITY ---
 
   const hasChanges = !areMapsEqual(ingredientsMap, originalFridgeMap);
 
@@ -165,9 +177,7 @@ export default function FridgeScreen({ navigation }) {
 
     try {
       console.log("--- STARTING FRIDGE UPDATE API CALL ---");
-      const apiResponse = await updateFridge(ingredientsMap);
-      console.log("API response (updateFridge):", apiResponse);
-
+      await updateFridge(ingredientsMap);
       await fetchUserData(currentUserId);
       console.log("User data reloaded successfully.");
 
@@ -176,9 +186,7 @@ export default function FridgeScreen({ navigation }) {
       console.error("ERROR WHILE SAVING FRIDGE:", err);
       Alert.alert(
         "Error",
-        `Could not save fridge data. Please check the console for details: ${
-          err.message || "Unknown error"
-        }`
+        `Could not save fridge data. Details: ${err.message || "Unknown error"}`
       );
     } finally {
       setIsSaving(false);
@@ -195,7 +203,63 @@ export default function FridgeScreen({ navigation }) {
     hasChanges,
   ]);
 
-  // --- LOCAL STATE UI AND CRUD HANDLERS (Giữ nguyên) ---
+  // --- RECIPE SEARCH HANDLER ---
+
+  const handleFindRecipes = useCallback(async () => {
+    const ingredientNames = ingredientsArray.map((item) => item.id);
+
+    setSearchAttempted(true);
+
+    if (ingredientNames.length === 0) {
+      setSearchedRecipes([]);
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchedRecipes([]); // Clear kết quả cũ
+
+    try {
+      // Chỉ tìm kiếm tối đa 20 công thức
+      const result = await searchRecipesByIngredients(ingredientNames, 1, 20);
+      setSearchedRecipes(result.data || []);
+    } catch (error) {
+      console.error("Error during automatic recipe search:", error);
+      setSearchedRecipes([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [ingredientsArray, searchRecipesByIngredients]);
+
+  // ⭐️ useEffect để TỰ ĐỘNG TÌM KIẾM
+  useEffect(() => {
+    // Chỉ gọi tìm kiếm nếu nguyên liệu đã sẵn sàng và không đang ở trạng thái loading/saving/refreshing
+    if (
+      !isAuthLoading &&
+      ingredientsArray.length >= 0 && // >= 0 để trigger ngay cả khi rỗng (cho hiển thị thông báo)
+      !isSaving &&
+      !isRefreshing
+    ) {
+      console.log(
+        "Fridge ingredients changed, initiating automatic recipe search..."
+      );
+      handleFindRecipes();
+    }
+  }, [
+    ingredientsArray,
+    isAuthLoading,
+    isSaving,
+    isRefreshing,
+    handleFindRecipes,
+  ]);
+
+  // Hàm điều hướng đến màn hình chi tiết công thức
+  const handleRecipePress = (recipeId) => {
+    if (recipeId) {
+      navigation.navigate("RecipeDetail", { recipeId });
+    }
+  };
+
+  // --- LOCAL STATE UI AND CRUD HANDLERS ---
 
   const handleRefresh = useCallback(async () => {
     if (!fetchUserData || isAuthLoading || isSaving || hasChanges) return;
@@ -287,7 +351,7 @@ export default function FridgeScreen({ navigation }) {
     setSelectedUnit(STANDARD_UNITS[0].value);
   };
 
-  // --- RENDERING VARS (Giữ nguyên) ---
+  // --- RENDERING VARS ---
   const pickerContainerStyle = {
     height: 48,
     backgroundColor: "#fff",
@@ -317,15 +381,11 @@ export default function FridgeScreen({ navigation }) {
   const isBusy = showInitialLoading || isRefreshing || isSaving;
 
   return (
-    // ⭐️ SỬ DỤNG SafeAreaView VÀ style fullScreen
     <SafeAreaView style={styles.fullScreen}>
       <StatusBar barStyle="light-content" backgroundColor={DARK_BLUE} />
 
       {/* HEADER */}
-      <View
-        // ⭐️ XÓA paddingTop, chỉ giữ paddingBottom
-        style={[styles.headerContainer, { paddingBottom: 15 }]}
-      >
+      <View style={[styles.headerContainer, { paddingBottom: 15 }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           disabled={isBusy}
@@ -545,13 +605,39 @@ export default function FridgeScreen({ navigation }) {
             )}
           </View>
 
-          {/* Nút tìm công thức gợi ý */}
-          <TouchableOpacity style={styles.findRecipeButton}>
-            <Ionicons name="search-outline" size={20} color="#fff" />
-            <Text style={styles.findRecipeText}>
-              Find Recipes with Available Ingredients
-            </Text>
-          </TouchableOpacity>
+          {/* ⭐️ HIỂN THỊ KẾT QUẢ TÌM KIẾM TỰ ĐỘNG */}
+          {searchAttempted && (
+            <View style={{ marginTop: 30 }}>
+              <Text style={styles.sectionTitle}>
+                Suggested Recipes ({searchedRecipes.length})
+              </Text>
+              <View style={styles.cardResult}>
+                {isSearching ? (
+                  <View style={{ padding: 30, alignItems: "center" }}>
+                    <ActivityIndicator size="large" color={PRIMARY_BLUE} />
+                    <Text style={{ marginTop: 10, color: TEXT_DARK }}>
+                      Searching for delicious recipes...
+                    </Text>
+                  </View>
+                ) : searchedRecipes.length === 0 ? (
+                  <Text
+                    style={{ textAlign: "center", padding: 20, color: "#999" }}
+                  >
+                    No matching recipes found based on current fridge
+                    ingredients.
+                  </Text>
+                ) : (
+                  searchedRecipes.map((recipe) => (
+                    <RecipeCard
+                      key={recipe._id}
+                      recipe={recipe}
+                      onPress={() => handleRecipePress(recipe._id)}
+                    />
+                  ))
+                )}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -559,7 +645,6 @@ export default function FridgeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // ⭐️ Style mới cho SafeAreaView
   fullScreen: { flex: 1, backgroundColor: BACKGROUND_LIGHT },
 
   headerContainer: {
@@ -728,11 +813,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // --- INGREDIENT LIST ---
+  // --- INGREDIENT LIST & RECIPE CARD CONTAINER ---
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: { elevation: 3 },
+    }),
+  },
+
+  cardResult: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -781,29 +881,21 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
 
-  // --- SUGGEST RECIPE BUTTON ---
-  findRecipeButton: {
-    backgroundColor: DARK_BLUE,
-    paddingVertical: 15,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 30,
-    flexDirection: "row",
-    justifyContent: "center",
-    ...Platform.select({
-      ios: {
-        shadowColor: DARK_BLUE,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-      },
-      android: { elevation: 6 },
-    }),
-  },
-  findRecipeText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
-    marginLeft: 10,
-  },
+  // --- SUGGEST RECIPE BUTTON (Đã bị loại bỏ khỏi Render, giữ style để phòng ngừa) ---
+  // findRecipeButton: {
+  //   backgroundColor: DARK_BLUE,
+  //   paddingVertical: 15,
+  //   borderRadius: 12,
+  //   alignItems: "center",
+  //   marginTop: 30,
+  //   flexDirection: "row",
+  //   justifyContent: "center",
+  //   ...
+  // },
+  // findRecipeText: {
+  //   color: "#fff",
+  //   fontSize: 15,
+  //   fontWeight: "700",
+  //   marginLeft: 10,
+  // },
 });
