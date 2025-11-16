@@ -21,88 +21,90 @@ const ACTIVE_COLOR = "#D35400";
 const BORDER_COLOR = "#A0704C";
 const BUTTON_COLOR = "#886B47";
 
-// --- Dữ liệu Sở thích được phân loại theo CHỦ ĐỀ (THEME) ---
+// --- Thematic Preferences Data (THEME_PREFERENCES) ---
 const THEME_PREFERENCES = [
-  // --- CARD 1: KHU VỰC ẨM THỰC (region) ---
+  // --- CARD 1: CULINARY REGION (region) ---
   {
-    theme: "VĂN HÓA ẨM THỰC 🌍",
-    description: "Bạn yêu thích hương vị của khu vực nào? (Chọn nhiều)",
+    theme: "CULINARY CULTURE 🌍",
+    description: "Which regional flavors do you love? (Select multiple)",
     key: "region",
     tags: [
-      { name: "Việt Nam", value: "Vietnam", icon: "flag-outline" },
-      { name: "Châu Á (Khác)", value: "Asia", icon: "restaurant-outline" },
-      { name: "Châu Âu (Âu/Mỹ)", value: "Europe", icon: "pizza-outline" },
-      { name: "Mỹ Latinh", value: "Latinh", icon: "bonfire-outline" },
-      { name: "Địa Trung Hải", value: "Mediterranean", icon: "sunny-outline" },
+      { name: "Vietnam", value: "Vietnam", icon: "flag-outline" },
+      { name: "Asia (Other)", value: "Asia", icon: "restaurant-outline" },
+      { name: "Europe/Americas", value: "Europe", icon: "pizza-outline" },
+      { name: "Latin America", value: "Latinh", icon: "bonfire-outline" },
+      { name: "Mediterranean", value: "Mediterranean", icon: "sunny-outline" },
     ],
     singleSelection: false,
   },
 
-  // --- CARD 2: MÓN ĂN ĐẶC TRƯNG (favorite_dishes) ---
+  // --- CARD 2: SIGNATURE DISHES (favorite_dishes) ---
   {
-    theme: "MÓN ĂN ĐẶC TRƯNG 🍜",
-    description: "Món ăn nào bạn luôn muốn thưởng thức hoặc nấu? (Chọn nhiều)",
+    theme: "SIGNATURE DISHES 🍜",
+    description:
+      "Which dishes do you always want to eat or cook? (Select multiple)",
     key: "favorite_dishes",
     tags: [
-      { name: "Phở", value: "Pho", icon: "bowl-outline" },
-      { name: "Bánh Mì", value: "BanhMi", icon: "baguette-outline" },
+      { name: "Pho", value: "Pho", icon: "nutrition-outline" }, // FIXED ICON
+      { name: "Banh Mi", value: "BanhMi", icon: "fast-food-outline" }, // FIXED ICON
       { name: "Sushi", value: "Sushi", icon: "fish-outline" },
-      { name: "Pizza", value: "Pizza", icon: "american-pizza-slice-outline" },
+      { name: "Pizza", value: "Pizza", icon: "pizza-outline" }, // FIXED ICON
       { name: "Burger", value: "Burger", icon: "fast-food-outline" },
-      { name: "Salad/Rau củ", value: "Salad", icon: "leaf-outline" },
+      { name: "Salad/Vegetables", value: "Salad", icon: "leaf-outline" },
     ],
     singleSelection: false,
   },
 
-  // --- CARD 3: NGUYÊN LIỆU CHÍNH (favorite_ingredients) ---
+  // --- CARD 3: KEY INGREDIENTS (favorite_ingredients) ---
   {
-    theme: "NGUYÊN LIỆU CHÍNH PHẢI CÓ 🥩",
+    theme: "ESSENTIAL INGREDIENTS 🥩",
     description:
-      "Các nguyên liệu chính nào không thể thiếu trong bếp của bạn? (Chọn nhiều)",
+      "Which main ingredients are indispensable in your kitchen? (Select multiple)",
     key: "favorite_ingredients",
     tags: [
-      { name: "Thịt Gà", value: "Chicken", icon: "egg-outline" },
-      { name: "Thịt Bò", value: "Beef", icon: "color-fill-outline" },
-      { name: "Hải Sản", value: "Seafood", icon: "fish-outline" },
-      { name: "Trứng", value: "Eggs", icon: "egg-outline" },
-      { name: "Cà Rốt", value: "Carrot", icon: "leaf-outline" },
-      { name: "Gạo/Bún/Mì", value: "Rice/Noodles", icon: "cube-outline" },
-      { name: "Khoai Tây", value: "Potato", icon: "cube-outline" },
+      { name: "Chicken", value: "Chicken", icon: "chicken-outline" },
+      { name: "Beef", value: "Beef", icon: "color-fill-outline" },
+      { name: "Seafood", value: "Seafood", icon: "fish-outline" },
+      { name: "Eggs", value: "Eggs", icon: "egg-outline" },
+      { name: "Carrot", value: "Carrot", icon: "leaf-outline" },
+      { name: "Rice/Noodles", value: "Rice/Noodles", icon: "cube-outline" },
+      { name: "Potato", value: "Potato", icon: "cube-outline" },
     ],
     singleSelection: false,
   },
 
-  // --- CARD 4: CHẾ ĐỘ ĂN (diet) ---
+  // --- CARD 4: DIET (diet) ---
   {
-    theme: "CHẾ ĐỘ ĂN KIÊNG 🥕",
-    description: "Bạn đang theo đuổi chế độ ăn kiêng nào? (Chọn nhiều)",
+    theme: "DIETARY RESTRICTIONS 🥕",
+    description: "Which diet are you currently following? (Select multiple)",
     key: "diet",
     tags: [
-      { name: "Thuần chay", value: "Vegan", icon: "leaf-outline" },
-      { name: "Ăn chay", value: "Vegetarian", icon: "nutrition-outline" },
-      { name: "Không Gluten", value: "Gluten-Free", icon: "ban-outline" },
+      { name: "Vegan", value: "Vegan", icon: "leaf-outline" },
+      { name: "Vegetarian", value: "Vegetarian", icon: "nutrition-outline" },
+      { name: "Gluten-Free", value: "Gluten-Free", icon: "ban-outline" },
       { name: "Low Carb", value: "Low-Carb", icon: "water-outline" },
       { name: "High Protein", value: "High-Protein", icon: "barbell-outline" },
     ],
     singleSelection: false,
   },
 
-  // --- CARD 5: KỸ NĂNG NẤU NƯỚNG (cooking_skill_level) ---
+  // --- CARD 5: COOKING SKILL LEVEL (cooking_skill_level) ---
   {
-    theme: "KỸ NĂNG NẤU NƯỚNG 🧑‍🍳",
-    description: "Cấp độ nấu nướng của bạn là gì? (Chọn một)",
+    theme: "COOKING SKILL LEVEL 🧑‍🍳",
+    description: "What is your current cooking skill level? (Select one)",
     key: "cooking_skill_level",
     tags: [
-      { name: "Sơ cấp (1)", value: 1, icon: "sad-outline" },
-      { name: "Trung bình (2)", value: 2, icon: "happy-outline" },
-      { name: "Nâng cao (3)", value: 3, icon: "star-outline" },
-      { name: "Chuyên gia (4)", value: 4, icon: "medal-outline" },
+      { name: "Beginner (1)", value: 1, icon: "sad-outline" },
+      { name: "Intermediate (2)", value: 2, icon: "happy-outline" },
+      { name: "Advanced (3)", value: 3, icon: "star-outline" },
+      { name: "Expert (4)", value: 4, icon: "medal-outline" },
+      { name: "Master (5)", value: 5, icon: "trophy-outline" },
     ],
     singleSelection: true,
   },
 ];
 
-// Component cho một thẻ (Tag)
+// Tag Component
 const ThemeTag = ({ tag, isSelected, onPress }) => (
   <TouchableOpacity
     style={[
@@ -130,7 +132,6 @@ const ThemeTag = ({ tag, isSelected, onPress }) => (
 
 export default function HabitCollectionScreen() {
   const navigation = useNavigation();
-  // useUserUpdateAPI phải được cập nhật như hướng dẫn ở trên (Mục 1)
   const { updateLoading, completeHabitCollection } = useUserUpdateAPI();
 
   const [preferences, setPreferences] = useState({});
@@ -150,7 +151,8 @@ export default function HabitCollectionScreen() {
         }
       }
 
-      if (isSingleSelection && typeof tagValue === "number") {
+      // Specific logic for single selection (like cooking_skill_level)
+      if (isSingleSelection && themeKey === "cooking_skill_level") {
         newTags = newTags.length > 0 ? [tagValue] : [];
       }
 
@@ -166,63 +168,76 @@ export default function HabitCollectionScreen() {
   const handleSubmit = async () => {
     if (updateLoading) return;
 
-    // --- KIỂM TRA ĐIỀU KIỆN TỐI THIỂU ---
+    // --- MINIMUM VALIDATION CHECK ---
     if ((preferences.region?.length || 0) === 0) {
       Alert.alert(
-        "Thiếu thông tin",
-        "Vui lòng chọn ít nhất một khu vực ẩm thực yêu thích."
+        "Missing Information",
+        "Please select at least one favorite culinary region."
       );
       return;
     }
     if ((preferences.cooking_skill_level?.length || 0) !== 1) {
       Alert.alert(
-        "Thiếu thông tin",
-        "Vui lòng chọn cấp độ kỹ năng nấu nướng của bạn (chọn duy nhất một)."
+        "Missing Information",
+        "Please select your cooking skill level (only one selection allowed)."
       );
       return;
     }
 
-    // --- TẠO PAYLOAD API MỚI (CHỈ GỒM DỮ LIỆU) ---
-    // Đảm bảo cooking_skill_level là giá trị số duy nhất
+    // --- 1. GET COOKING LEVEL (Single numeric value) ---
     const cookingLevel = preferences.cooking_skill_level?.[0] || 2;
 
-    // CHỈ GỬI BODY DỮ LIỆU CẦN THIẾT
+    // --- 2. CONVERT PREFERENCES TO NEW TAGS ARRAY PAYLOAD ---
+    const newTagsPayload = [];
+
+    // Loop through all preferences keys, excluding cooking_skill_level
+    for (const [key, values] of Object.entries(preferences)) {
+      if (key !== "cooking_skill_level" && Array.isArray(values)) {
+        values.forEach((tagValue) => {
+          // All selected preference tags are given a default score of 1
+          newTagsPayload.push({
+            tag_name: tagValue,
+            score: 1,
+          });
+        });
+      }
+    }
+
+    // --- 3. CREATE FINAL API PAYLOAD ---
     const aiProfilePayload = {
-      region: preferences.region || [],
-      favorite_dishes: preferences.favorite_dishes || [],
-      favorite_ingredients: preferences.favorite_ingredients || [],
-      diet: preferences.diet || [],
       cooking_skill_level: cookingLevel,
+      tags: newTagsPayload,
     };
 
-    console.log("AI Profile Payload (Chỉ dữ liệu):", aiProfilePayload);
+    console.log("AI Profile Payload (New Structure):", aiProfilePayload);
 
     try {
-      // Gọi API. Hook sẽ tự thêm completed: true và timestamp.
       await completeHabitCollection(aiProfilePayload);
 
       Alert.alert(
-        "Tuyệt vời!",
-        `Đã lưu hồ sơ AI của bạn. Hãy bắt đầu khám phá!`
+        "Excellent!",
+        `Your AI profile has been saved. Let's start exploring!`
       );
 
-      // Nếu AuthContext đã cập nhật, navigation.replace là không cần thiết
-      // nhưng có thể giữ lại như một fallback.
       navigation.replace("MainTabs");
     } catch (error) {
-      console.error("Lỗi khi gửi hồ sơ AI:", error);
+      console.error("Error submitting AI profile:", error);
+      Alert.alert(
+        "Error",
+        "Could not save personal profile. Please try again."
+      );
     }
   };
 
-  // --- RENDER (Không thay đổi) ---
+  // --- RENDER ---
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={BACKGROUND_LIGHT} />
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.headerTitle}>✨ Thiết lập Hồ sơ Cá nhân</Text>
+        <Text style={styles.headerTitle}>✨ Personal Profile Setup</Text>
         <Text style={styles.subHeader}>
-          Chọn các thẻ sở thích phù hợp nhất với bạn. Đây là bước quan trọng để
-          cá nhân hóa gợi ý công thức.
+          Select the tags that best describe your preferences. This is a crucial
+          step for personalizing recipe suggestions.
         </Text>
 
         {THEME_PREFERENCES.map((themeItem) => (
@@ -268,8 +283,8 @@ export default function HabitCollectionScreen() {
 
           <Text style={styles.submitButtonText}>
             {updateLoading
-              ? "Đang Lưu..."
-              : `Lưu Hồ sơ & Bắt đầu (${totalSelected} đã chọn)`}
+              ? "Saving..."
+              : `Save Profile & Start (${totalSelected} selected)`}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -277,7 +292,7 @@ export default function HabitCollectionScreen() {
   );
 }
 
-// --- STYLES (Giữ nguyên) ---
+// --- STYLES ---
 
 const styles = StyleSheet.create({
   safeArea: {

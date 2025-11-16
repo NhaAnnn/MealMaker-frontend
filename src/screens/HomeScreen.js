@@ -62,8 +62,8 @@ const FridgeReminderModal = ({ visible, onClose, onNavigate }) => {
           />
           <Text style={modalStyles.title}>Freshness Alert!</Text>
           <Text style={modalStyles.message}>
-            Hãy kiểm tra và cập nhật các nguyên liệu trong **Tủ Lạnh** của bạn.
-            Dữ liệu tươi mới giúp chúng tôi gợi ý công thức tốt hơn!
+            Please check and update the ingredients in your **Refrigerator**.
+            Fresh data helps us suggest better recipes!
           </Text>
 
           <View style={modalStyles.buttonContainer}>
@@ -208,8 +208,8 @@ export default function HomeScreen() {
   const loadFeaturedRecipes = useCallback(async () => {
     setIsFeaturedLoading(true);
     try {
-      const data = await fetchAllRecipes(3);
-      setFeaturedRecipes(data);
+      // const data = await fetchAllRecipes(3);
+      // setFeaturedRecipes(data);
     } catch (e) {
       console.error("Error loading featured recipes:", e);
     } finally {
@@ -271,10 +271,10 @@ export default function HomeScreen() {
       screen: "Favorites",
     },
     {
-      title: "Plan", // Lên Kế Hoạch
-      iconName: "calendar-outline",
+      title: "Skill Quiz", // Lên Kế Hoạch
+      iconName: "medal-outline",
       color: "#F1C40F",
-      screen: "PlanScreen",
+      screen: "Quiz",
     },
   ];
 

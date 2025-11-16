@@ -6,267 +6,432 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
+  FlatList,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// --- Define MODERN BLUE colors ---
-const PRIMARY_BLUE = "#AB9574"; // Bright Blue (Primary color)
-const DARK_BLUE = "#3D2C1C"; // Dark Blue for Header
-const BACKGROUND_LIGHT = "#F9EBD7"; // Very Light Gray Background
-const TEXT_DARK = "#2C3E50"; // Dark Gray Text
-const ACCENT_GREEN = "#D9B263"; // Accent color for Tags
+// ⭐ ĐÃ KHÔI PHỤC IMPORTS GỐC ⭐
+import { useRecipes } from "../hook/useRecipes";
+import RecipeCard from "../components/RecipeCard";
 
-// Component for Filter Option (Kept in English for consistency)
-const FilterOption = ({ title, options, selected, onSelect }) => (
+// --- Theme colors (Dùng màu bạn cung cấp) ---
+const PRIMARY_BLUE = "#AB9574";
+const DARK_BLUE = "#3D2C1C";
+const BACKGROUND_LIGHT = "#F9EBD7";
+const TEXT_DARK = "#2C3E50";
+const ACCENT_GREEN = "#D9B263"; // Dùng cho nút chính (Search)
+
+// --- Filter Data (Giữ nguyên) ---
+const NEW_FILTER_DATA = {
+  meal_type: {
+    title: "Meal Type 🍽️",
+    tags: [
+      { label: "Breakfast", value: "breakfast" },
+      { label: "Lunch", value: "lunch" },
+      { label: "Dinner", value: "dinner" },
+      { label: "Snack", value: "snack" },
+      { label: "Starter", value: "starter" },
+      { label: "Dessert", value: "dessert" },
+      { label: "Side Dish", value: "side" },
+    ],
+  },
+  dietary: {
+    title: "Dietary 🥕",
+    tags: [
+      { label: "Vegan", value: "vegan" },
+      { label: "Vegetarian", value: "vegetarian" },
+      { label: "Pescatarian", value: "pescatarian" },
+      { label: "Gluten-Free", value: "gluten-free" },
+      { label: "Low Carb", value: "low-carb" },
+      { label: "High Protein", value: "protein" },
+      { label: "Healthy", value: "healthy" },
+      { label: "Light", value: "light" },
+    ],
+  },
+  cuisine: {
+    title: "Cuisine 🌍",
+    tags: [
+      { label: "Italian", value: "italian" },
+      { label: "Asian", value: "asian" },
+      { label: "Mexican", value: "mexican" },
+    ],
+  },
+  properties: {
+    title: "Properties & Method 🌶️",
+    tags: [
+      { label: "Quick", value: "quick" },
+      { label: "Spicy", value: "spicy" },
+      { label: "Sweet", value: "sweet" },
+      { label: "Sweet-Savory", value: "sweet-savory" },
+      { label: "Creamy", value: "creamy" },
+      { label: "Comfort Food", value: "comfort" },
+      { label: "Soup", value: "soup" },
+      { label: "Baked/Oven", value: "baked" },
+      { label: "Salad", value: "salad" },
+      { label: "Seafood", value: "seafood" },
+      { label: "Family", value: "family" },
+    ],
+  },
+  cooking_skill_level: {
+    title: "Skill Level 🧑‍🍳 (Select 1)",
+    tags: [
+      { label: "Easy", value: 1 },
+      { label: "Medium", value: 2 },
+      { label: "Hard", value: 3 },
+    ],
+    singleSelection: true,
+  },
+};
+
+// --- Filter Section Component (Giữ nguyên) ---
+const FilterSection = ({
+  title,
+  options,
+  selected,
+  onSelect,
+  categoryKey,
+  singleSelection,
+}) => (
   <View style={styles.filterGroup}>
-    <Text style={styles.groupTitle}>{title}</Text>
-    <View style={styles.optionsContainer}>
-      {options.map((option) => (
-        <TouchableOpacity
-          key={option}
-          style={[
-            styles.optionPill,
-            selected.includes(option) && { backgroundColor: ACCENT_GREEN },
-            selected.includes(option) && { borderColor: ACCENT_GREEN },
-          ]}
-          onPress={() => onSelect(option)}
-        >
-          <Text
-            style={[
-              styles.optionText,
-              selected.includes(option) && { color: "#fff" },
-            ]}
+    <Text style={styles.filterTitle}>{title}</Text>
+    <View style={styles.pillsWrap}>
+      {options.map((option) => {
+        const isSelected = selected.includes(option.value);
+        return (
+          <TouchableOpacity
+            key={`${categoryKey}-${option.value}`}
+            style={[styles.pill, isSelected && styles.pillActive]}
+            onPress={() => onSelect(categoryKey, option.value, singleSelection)}
           >
-            {option}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            <Text
+              style={[styles.pillText, isSelected && styles.pillTextActive]}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   </View>
 );
 
+// --- MAIN SCREEN ---
 export default function FilterScreen({ navigation }) {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
   const [selectedFilters, setSelectedFilters] = useState({
+    meal_type: [],
+    dietary: [],
     cuisine: [],
-    time: [],
-    difficulty: [],
+    properties: [],
+    cooking_skill_level: [],
   });
 
-  // Dịch các tùy chọn lọc
-  const filterData = {
-    cuisine: [
-      "Vietnamese", // Việt Nam
-      "Japanese", // Nhật Bản
-      "Korean", // Hàn Quốc
-      "Italian", // Ý
-      "Thai", // Thái Lan
-      "European", // Âu
-      "Other", // Khác
-    ],
-    time: ["< 15 min", "15 - 30 min", "30 - 60 min", "> 60 min"], // Thời gian nấu
-    difficulty: ["Easy", "Medium", "Hard"], // Độ khó
-  };
+  const { isLoading, error, fetchRecipesByTags, setError } = useRecipes();
+  const [hasSearched, setHasSearched] = useState(false); // Toggle Filter Selection
+  const [recipes, setRecipes] = useState([]);
+  const handleToggleFilter = (categoryKey, tagValue, isSingleSelection) => {
+    if (error) setError(null);
 
-  const handleSelect = (category, option) => {
     setSelectedFilters((prev) => {
-      const current = prev[category];
+      const current = prev[categoryKey] || [];
+      let updated;
 
-      // Logic for multi-select (allows multiple options per category)
-      if (current.includes(option)) {
-        return {
-          ...prev,
-          [category]: current.filter((item) => item !== option),
-        };
+      if (isSingleSelection) {
+        updated = current.includes(tagValue) ? [] : [tagValue];
       } else {
-        return { ...prev, [category]: [...current, option] };
+        updated = current.includes(tagValue)
+          ? current.filter((x) => x !== tagValue)
+          : [...current, tagValue];
       }
-    });
-  };
 
-  const handleApply = () => {
-    console.log("Applying filters:", selectedFilters);
-    // Logic navigation and applying filters
-    // Chuyển hướng đến màn hình Explore (đã dịch từ Khám Phá)
-    navigation.navigate("Explore", { filters: selectedFilters });
-  };
+      return { ...prev, [categoryKey]: updated };
+    });
+  }; // Search Handler (Sẽ mở Modal sau khi tìm kiếm xong)
+
+  const handleSearch = async () => {
+    let tags = [];
+
+    Object.entries(selectedFilters).forEach(([key, vals]) => {
+      vals.forEach((v) => {
+        tags.push(key === "cooking_skill_level" ? `difficulty:${v}` : v);
+      });
+    });
+
+    setHasSearched(true);
+
+    if (tags.length === 0) {
+      setError("Please select at least one filter.");
+      return;
+    }
+
+    console.log(tags);
+    const response = await fetchRecipesByTags(tags, true);
+
+    setRecipes(response || []);
+    // Mở Modal sau khi tìm kiếm xong (dù có lỗi hay không, để hiển thị lỗi/kết quả)
+    setIsModalVisible(true);
+  }; // Reset Filters
 
   const handleReset = () => {
-    setSelectedFilters({ cuisine: [], time: [], difficulty: [] });
+    setSelectedFilters({
+      meal_type: [],
+      dietary: [],
+      cuisine: [],
+      properties: [],
+      cooking_skill_level: [],
+    });
+    setError(null);
+    setHasSearched(false);
+    setIsModalVisible(false);
+  };
+
+  const currentTagsCount = Object.values(selectedFilters).flat().length;
+
+  const renderResultsInModal = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.modalMessageContainer}>
+          <ActivityIndicator size="large" color={PRIMARY_BLUE} />
+          <Text style={styles.loadingText}>Searching for recipes...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.modalMessageContainer}>
+          <Ionicons name="warning-outline" size={50} color="#E3342F" />
+          <Text style={styles.errorText}>Error: {error}</Text>
+        </View>
+      );
+    }
+
+    if (recipes.length === 0) {
+      return (
+        <View style={styles.modalMessageContainer}>
+          <Ionicons name="search-outline" size={60} color="#ccc" />
+          <Text style={styles.messageText}>
+            No recipes found for these filters.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={recipes}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <RecipeCard
+            key={item._id}
+            recipe={item}
+            onPress={() =>
+              navigation.navigate("RecipeDetail", {
+                recipeId: item._id,
+              })
+            }
+          />
+        )}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        ListHeaderComponent={() => (
+          <Text style={styles.resultsCountText}>
+            Found **{recipes.length}** recipes
+          </Text>
+        )}
+      />
+    );
   };
 
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={DARK_BLUE} />
-
-      <View
-        style={[styles.headerContainer, { paddingTop: 15, paddingBottom: 15 }]}
-      >
+      <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={23} color="#fff" />
         </TouchableOpacity>
-        {/* Dịch: Bộ Lọc Công Thức */}
         <Text style={styles.headerTitle}>Recipe Filters</Text>
         <TouchableOpacity onPress={handleReset}>
-          {/* Dịch: Đặt lại */}
           <Text style={styles.resetText}>Reset</Text>
         </TouchableOpacity>
       </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.container}>
-          {/* Dịch: Chọn các tiêu chí... */}
-          <Text style={styles.sectionDescription}>
-            Select criteria to refine your search results.
-          </Text>
-
-          <View style={styles.card}>
-            <FilterOption
-              // Dịch: Quốc gia/Vùng miền
-              title="Cuisine/Region"
-              options={filterData.cuisine}
-              selected={selectedFilters.cuisine}
-              onSelect={(option) => handleSelect("cuisine", option)}
-            />
-
-            <FilterOption
-              // Dịch: Thời gian nấu
-              title="Cooking Time"
-              options={filterData.time}
-              selected={selectedFilters.time}
-              onSelect={(option) => handleSelect("time", option)}
-            />
-
-            <FilterOption
-              // Dịch: Độ khó
-              title="Difficulty"
-              options={filterData.difficulty}
-              selected={selectedFilters.difficulty}
-              onSelect={(option) => handleSelect("difficulty", option)}
-            />
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* Apply Button Fixed at the bottom - APPLY PADDING BOTTOM FROM INSETS */}
-      <View style={[styles.footer, { paddingBottom: +20 }]}>
-        <TouchableOpacity
-          style={[styles.applyButton, { backgroundColor: PRIMARY_BLUE }]}
-          onPress={handleApply}
-        >
-          {/* Dịch: Áp Dụng Bộ Lọc */}
-          <Text style={styles.applyButtonText}>Apply Filters</Text>
-          <Ionicons
-            name="checkmark-circle"
-            size={20}
-            color="#fff"
-            style={{ marginLeft: 10 }}
+      <ScrollView style={styles.filterSection}>
+        {Object.entries(NEW_FILTER_DATA).map(([key, data]) => (
+          <FilterSection
+            key={key}
+            title={data.title}
+            options={data.tags}
+            selected={selectedFilters[key]}
+            onSelect={handleToggleFilter}
+            categoryKey={key}
+            singleSelection={data.singleSelection}
           />
-        </TouchableOpacity>
-      </View>
+        ))}
+        <View style={{ height: 120 }} />
+      </ScrollView>
+      <TouchableOpacity
+        style={styles.searchButton}
+        onPress={handleSearch}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color={DARK_BLUE} />
+        ) : (
+          <Text style={styles.applyButtonText}>
+            Search ({currentTagsCount})
+          </Text>
+        )}
+      </TouchableOpacity>
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={isModalVisible}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalView}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Search Results</Text>
+            <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+              <Ionicons name="close" size={28} color={DARK_BLUE} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.resultsContainer}>{renderResultsInModal()}</View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// --- STYLES (Giữ nguyên) ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: BACKGROUND_LIGHT },
-  scrollContent: { paddingBottom: 100 },
-  container: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  // --- Header (Safe Area fix applied inline) ---
+
   headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: DARK_BLUE,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingVertical: 15,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#fff",
+  headerTitle: { color: "#fff", fontSize: 20, fontWeight: "700" },
+  resetText: { color: PRIMARY_BLUE, fontSize: 15, fontWeight: "600" },
+
+  filterSection: {
+    paddingHorizontal: 18,
+    paddingTop: 15,
+    paddingBottom: 150,
   },
-  resetText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  sectionDescription: {
-    fontSize: 15,
-    color: TEXT_DARK,
-    marginBottom: 20,
-  },
-  // --- Filter Card ---
-  card: {
+
+  filterGroup: {
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#e6dccc",
     elevation: 2,
   },
-  filterGroup: {
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
-  },
-  groupTitle: {
+
+  filterTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: TEXT_DARK,
     marginBottom: 10,
   },
-  optionsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  optionPill: {
-    paddingVertical: 8,
+
+  pillsWrap: { flexDirection: "row", flexWrap: "wrap" },
+
+  pill: {
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 20,
-    marginRight: 10,
-    marginBottom: 10,
-    backgroundColor: "#F5F5F5",
+    borderRadius: 18,
+    backgroundColor: "#F7F3EC",
+    marginRight: 8,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "#D7CEBE",
   },
-  optionText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#7F8C8D",
+
+  pillActive: {
+    backgroundColor: PRIMARY_BLUE,
+    borderColor: PRIMARY_BLUE,
   },
-  // --- Footer/Apply Button (Safe Area fix applied inline) ---
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-    backgroundColor: "#fff",
-  },
-  applyButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: PRIMARY_BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+
+  pillText: { fontSize: 13, color: "#6D6D6D", fontWeight: "600" },
+  pillTextActive: { color: "#fff" },
+
+  searchButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    paddingVertical: 14,
+    backgroundColor: ACCENT_GREEN,
+    borderRadius: 14,
+    elevation: 4,
+    zIndex: 10,
   },
   applyButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "800",
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "700",
+    color: DARK_BLUE,
   },
+  // ----------------------------------------------------
+  // STYLES CHO MODAL VÀ KẾT QUẢ
+  // ----------------------------------------------------
+
+  modalView: {
+    flex: 1,
+    backgroundColor: BACKGROUND_LIGHT,
+    paddingTop: 40,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+    backgroundColor: "#fff",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: DARK_BLUE,
+  },
+  resultsContainer: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingTop: 10,
+  },
+  resultsCountText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: TEXT_DARK,
+    marginBottom: 10,
+    paddingHorizontal: 5,
+  },
+
+  // ----------------------------------------------------
+  // STYLES CHUNG CHO MESSAGE
+  // ----------------------------------------------------
+  modalMessageContainer: {
+    alignItems: "center",
+    paddingTop: 50,
+  },
+  messageText: {
+    fontSize: 15,
+    color: "#777",
+    textAlign: "center",
+    marginTop: 10,
+  },
+  loadingText: { color: PRIMARY_BLUE, marginTop: 10 },
+  errorText: { color: "#B3261E", fontSize: 16, fontWeight: "600" },
 });

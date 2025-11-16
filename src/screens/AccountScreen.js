@@ -7,6 +7,7 @@ import {
   StatusBar,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -15,16 +16,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../components/AuthContext";
 
 // --- Color Definitions ---
-const PRIMARY_BLUE = "#AB9574"; // Primary Color
-const DARK_BLUE = "#F9EBD7";
-const BACKGROUND_LIGHT = "#F9EBD7"; // Very Light Gray Background
-const TEXT_DARK = "#2C3E50";
-
-// Mock User Data (Using actual Context in production)
-const mockUser = {
-  name: "Trong Nhan",
-  email: "trong.nhan@example.com",
-};
+const PRIMARY_BLUE = "#AB9574"; // Primary Color (Warm Brown/Gold)
+const DANGER_RED = "#a81100ff"; // Red for Logout
+const DARK_BLUE = "#F9EBD7"; // Header/Status Bar Color (Lightest)
+const BACKGROUND_LIGHT = "#F9EBD7"; // Very Light Background
+const TEXT_DARK = "#2C3E50"; // Dark Text
 
 // Account Option Component
 const AccountOption = ({ icon, title, action }) => (
@@ -40,18 +36,30 @@ const AccountOption = ({ icon, title, action }) => (
 export default function AccountScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-
   const tabBarHeight = useBottomTabBarHeight();
 
-  const { signOut } = useAuth();
+  // --- Lấy dữ liệu và hàm từ useAuth ---
+  const {
+    signOut,
+    userData,
+    fetchUserData,
+    isLoading: isAuthLoading,
+  } = useAuth();
 
+  const user = userData || { full_name: "Guest User", email: "N/A" };
+  const isFetchingUserData = !userData && isAuthLoading;
+
+  // --- LOGIC MỚI: LẤY TRÌNH ĐỘ NẤU ĂN ---
+  const cookingLevel = userData?.ai_profile?.cooking_skill_level || 0;
+  const levelDisplay = `Cooking Skill: Level ${cookingLevel}`;
+
+  // --- Hàm xử lý Logout ---
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
         onPress: () => {
-          console.log("User logged out (simulated)");
           signOut();
         },
         style: "destructive",
@@ -59,18 +67,35 @@ export default function AccountScreen() {
     ]);
   };
 
+  // --- Hàm xử lý điều hướng & hành động ---
   const handleAction = (actionName) => {
-    // Nếu actionName trùng với màn hình cần điều hướng, thực hiện điều hướng
-    if (actionName === "Liked Blogs") {
-      navigation.navigate("LikedPosts"); // GIẢ ĐỊNH TÊN MÀN HÌNH LÀ 'LikedPosts'
-      return;
+    switch (actionName) {
+      case "Liked Blogs":
+        navigation.navigate("LikedPosts");
+        break;
+      case "Skill Quiz":
+        navigation.navigate("Quiz");
+        break;
+      case "Update Profile":
+        navigation.navigate("ProfileUpdate");
+        break;
+      default:
+        Alert.alert("Feature", `${actionName} is currently under development.`);
+        break;
     }
-    // Còn lại hiển thị alert như cũ
-    Alert.alert("Feature", `${actionName} is currently under development.`);
   };
 
   const EXTRA_BOTTOM_MARGIN = 10 + 15;
   const finalPaddingBottom = tabBarHeight + EXTRA_BOTTOM_MARGIN;
+
+  if (isFetchingUserData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={PRIMARY_BLUE} />
+        <Text style={styles.loadingText}>Loading User Data...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.safeArea}>
@@ -82,26 +107,44 @@ export default function AccountScreen() {
           { paddingBottom: finalPaddingBottom },
         ]}
       >
-        {/* GENERAL INFO */}
+        {/* GENERAL INFO (Sử dụng userData) */}
         <View style={styles.userInfoCard}>
           <Ionicons
             name="person-circle-outline"
             size={80}
             color={PRIMARY_BLUE}
           />
-          <Text style={styles.userName}>{mockUser.name}</Text>
-          <Text style={styles.userEmail}>{mockUser.email}</Text>
+          <Text style={styles.userName}>
+            {user.full_name || user.user_name || "Guest"}
+          </Text>
+          <Text style={styles.userEmail}>
+            {user.email || user.user_name || "Account info not available"}
+          </Text>
+
+          {/* --- HIỂN THỊ TRÌNH ĐỘ NẤU ĂN --- */}
+          {cookingLevel > 0 && (
+            <View style={styles.levelBadge}>
+              <Ionicons name="sparkles-outline" size={16} color="#fff" />
+              <Text style={styles.levelText}>{levelDisplay}</Text>
+            </View>
+          )}
         </View>
 
         {/* --- MY ACTIVITY --- */}
         <View style={styles.sectionCard}>
           <Text style={styles.cardTitle}>My Activity</Text>
 
-          {/* === THÊM TÙY CHỌN "LIKED BLOGS" === */}
+          {/* === TÙY CHỌN "SKILL QUIZ" === */}
+          {/* <AccountOption
+            icon="medal-outline"
+            title="Skill Quiz"
+            action={() => handleAction("Skill Quiz")}
+          /> */}
+
           <AccountOption
-            icon="heart-outline" // Icon cho bài viết đã thích
+            icon="heart-outline"
             title="Liked Blogs"
-            action={() => handleAction("Liked Blogs")} // Điều hướng đến màn hình LikedPosts
+            action={() => handleAction("Liked Blogs")}
           />
 
           <AccountOption
@@ -148,6 +191,8 @@ export default function AccountScreen() {
             Version: 1.0 (MVP) | Developed by Minimalist Dev Team
           </Text>
         </View>
+
+        {/* LOGOUT BUTTON */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons
             name="log-out-outline"
@@ -165,6 +210,19 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: BACKGROUND_LIGHT },
   scrollContainer: { padding: 20, paddingBottom: 0 },
+
+  // --- Loading State ---
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: BACKGROUND_LIGHT,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: TEXT_DARK,
+  },
 
   // --- User Info ---
   userInfoCard: {
@@ -189,6 +247,24 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: "#7F8C8D",
+    marginBottom: 8, // Thêm margin để tách khỏi badge
+  },
+
+  // --- Badge Trình độ MỚI ---
+  levelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: PRIMARY_BLUE,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginTop: 5,
+  },
+  levelText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 5,
   },
 
   // --- Section Card ---
@@ -256,8 +332,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 15,
     borderRadius: 10,
-    backgroundColor: "#a81100ff",
-    shadowColor: "#E74C3C",
+    backgroundColor: DANGER_RED,
+    shadowColor: DANGER_RED,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,

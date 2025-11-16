@@ -31,9 +31,8 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasCompletedHabits, setHasCompletedHabits] = useState(false); // Đặt mặc định là FALSE
   const [userId, setUserId] = useState(null);
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState(null); // --- Hàm xử lý Phản hồi API chung ---
 
-  // --- Hàm xử lý Phản hồi API chung ---
   const processResponse = useCallback(async (response, url) => {
     const contentType = response.headers.get("content-type");
     let data = {};
@@ -56,9 +55,8 @@ export const AuthProvider = ({ children }) => {
       throw new Error(errorMessage);
     }
     return data;
-  }, []);
+  }, []); // --- Hàm Lưu/Xóa ID khỏi AsyncStorage (Giữ nguyên) ---
 
-  // --- Hàm Lưu/Xóa ID khỏi AsyncStorage (Giữ nguyên) ---
   const saveUserIdToStorage = useCallback(async (id) => {
     try {
       await AsyncStorage.setItem(USER_ID_KEY, id);
@@ -73,41 +71,43 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       console.error("Lỗi khi xóa userId khỏi AsyncStorage:", e);
     }
-  }, []);
+  }, []); // --- Hàm kiểm tra tính hợp lệ của ai_profile (Logic mới) ---
 
-  // --- Hàm kiểm tra tính hợp lệ của ai_profile (Logic mới) ---
   const checkAiProfileCompletion = useCallback((userObject) => {
-    const aiProfile = userObject?.ai_profile;
-    // Hồ sơ được coi là hoàn thành nếu có ai_profile VÀ có ít nhất 1 khu vực HOẶC cấp độ kỹ năng > 0
+    const aiProfile = userObject?.ai_profile; // Hồ sơ được coi là hoàn thành nếu có ai_profile VÀ có ít nhất 1 khu vực HOẶC cấp độ kỹ năng > 0
     return (
       aiProfile &&
       (aiProfile.region?.length > 0 || aiProfile.cooking_skill_level > 0)
     );
-  }, []);
+  }, []); // --- HÀM FETCH DỮ LIỆU USER CHI TIẾT THEO ID (ĐÃ SỬA LOGIC KIỂM TRA) ---
 
-  // --- HÀM FETCH DỮ LIỆU USER CHI TIẾT THEO ID (ĐÃ SỬA LOGIC KIỂM TRA) ---
   const fetchUserData = useCallback(
     async (id) => {
       if (!id) return;
 
-      const url = `${API_URL}${USER_PATH}/${id}`;
+      // ⭐⭐⭐ FIX CACHE HERE: FORCE NO CACHE
+      const url = `${API_URL}${USER_PATH}/${id}?t=${Date.now()}`;
+
+      const config = {
+        method: "GET",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      };
 
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, config);
         const apiResponse = await processResponse(response, url);
 
-        const userObject = apiResponse.data || apiResponse; // Cập nhật state chi tiết người dùng
+        const userObject = apiResponse.data || apiResponse;
 
         setUserData(userObject);
-        console.log(userObject);
-        // --- LOGIC MỚI: KIỂM TRA SỰ TỒN TẠI VÀ HỢP LỆ CỦA AI_PROFILE ---
+
         const isProfileValid = checkAiProfileCompletion(userObject);
         setHasCompletedHabits(isProfileValid);
-        // -------------------------------------------------------------
-        console.log(
-          "Fetch dữ liệu người dùng thành công. Habit completed:",
-          isProfileValid
-        );
+
         return userObject;
       } catch (error) {
         console.error(
@@ -117,18 +117,16 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
     },
-    [processResponse, checkAiProfileCompletion] // Thêm dependency checkAiProfileCompletion
+    [processResponse, checkAiProfileCompletion]
   );
 
-  // --- Hàm Tải Trạng Thái Ban Đầu (useEffect) ---
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         const storedUserId = await AsyncStorage.getItem(USER_ID_KEY);
         if (storedUserId) {
           setUserId(storedUserId);
-          setIsLoggedIn(true);
-          // GỌI: Lấy dữ liệu user chi tiết ngay sau khi tải ID
+          setIsLoggedIn(true); // GỌI: Lấy dữ liệu user chi tiết ngay sau khi tải ID
           await fetchUserData(storedUserId);
         } else {
           setIsLoggedIn(false);
@@ -142,10 +140,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     loadInitialData();
-  }, [fetchUserData]);
+  }, [fetchUserData]); // ---------------------------------------------------- // Đăng nhập (Đã thêm fetchUserData)
 
-  // ----------------------------------------------------
-  // Đăng nhập (Đã thêm fetchUserData)
   const signIn = useCallback(
     async (user_name, password) => {
       setIsLoading(true);
@@ -172,9 +168,8 @@ export const AuthProvider = ({ children }) => {
 
         setUserId(id);
         await saveUserIdToStorage(id);
-        setIsLoggedIn(true);
+        setIsLoggedIn(true); // GỌI: Lấy dữ liệu user chi tiết ngay sau khi đăng nhập
 
-        // GỌI: Lấy dữ liệu user chi tiết ngay sau khi đăng nhập
         await fetchUserData(id);
 
         console.log("Đăng nhập thành công.");
@@ -187,41 +182,33 @@ export const AuthProvider = ({ children }) => {
     },
     [
       processResponse,
-      saveUserIdToStorage,
-      // removeUserIdFromStorage, // Không cần thiết cho signIn
+      saveUserIdToStorage, // removeUserIdFromStorage, // Không cần thiết cho signIn
       fetchUserData,
     ]
-  );
+  ); // Đăng ký (Đã sửa setHasCompletedHabits mặc định là false)
 
-  // Đăng ký (Đã sửa setHasCompletedHabits mặc định là false)
   const signUp = useCallback(
     async (user_name, full_name, password) => {
       setIsLoading(true);
       setUserData(null);
 
       const endpoint = "users/";
-      const url = `${API_URL}${endpoint}`;
+      const url = `${API_URL}${endpoint}`; // 🛑 LỖI ĐÃ SỬA: Phải khởi tạo FormData trước khi sử dụng
 
-      // 🛑 LỖI ĐÃ SỬA: Phải khởi tạo FormData trước khi sử dụng
-      const formData = new FormData();
+      const formData = new FormData(); // 1. Tạo đối tượng JSON chứa dữ liệu người dùng
 
-      // 1. Tạo đối tượng JSON chứa dữ liệu người dùng
       const dataObject = {
         user_name: user_name,
         full_name: full_name,
         password: password,
-      };
+      }; // Chuyển đối tượng data thành chuỗi JSON
 
-      // Chuyển đối tượng data thành chuỗi JSON
-      const dataJson = JSON.stringify(dataObject);
+      const dataJson = JSON.stringify(dataObject); // 2. Thêm chuỗi JSON vào khóa "data" của FormData
 
-      // 2. Thêm chuỗi JSON vào khóa "data" của FormData
       formData.append("data", dataJson);
 
       const config = {
-        method: "POST",
-        // Headers Content-Type được tự động đặt là multipart/form-data
-        // khi dùng FormData.
+        method: "POST", // Headers Content-Type được tự động đặt là multipart/form-data // khi dùng FormData.
         body: formData,
       };
 
@@ -252,18 +239,24 @@ export const AuthProvider = ({ children }) => {
       }
     },
     [processResponse, saveUserIdToStorage]
-  );
+  ); // Đăng xuất (Đã thêm AsyncStorage.clear() và sửa setHasCompletedHabits)
 
-  // Đăng xuất (Đã sửa setHasCompletedHabits mặc định là false)
   const signOut = useCallback(async () => {
     setIsLoading(true);
     setIsLoggedIn(false);
-    setHasCompletedHabits(false); // <--- ĐẶT LẠI LÀ FALSE ĐỂ KHI LOGIN LẠI CŨNG CHECK TỪ ĐẦU
+    setHasCompletedHabits(false);
     setUserId(null);
     setUserData(null);
-    await removeUserIdFromStorage();
+
+    try {
+      // 🛑 THAY ĐỔI: XÓA TẤT CẢ DỮ LIỆU ĐÃ LƯU TRỮ TRONG ASYNCSTORAGE
+      await AsyncStorage.clear();
+      console.log("Đã xóa tất cả dữ liệu AsyncStorage.");
+    } catch (e) {
+      console.error("Lỗi khi xóa toàn bộ AsyncStorage:", e);
+    } // Nếu bạn chỉ muốn xóa USER_ID, dùng lại hàm này (nhưng yêu cầu là xóa tất cả) // await removeUserIdFromStorage();
     setIsLoading(false);
-  }, [removeUserIdFromStorage]);
+  }, []); // removeUserIdFromStorage không còn cần thiết nếu dùng clear()
 
   const value = {
     isLoggedIn,

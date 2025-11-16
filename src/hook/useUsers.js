@@ -130,11 +130,78 @@ export const useUserUpdateAPI = () => {
     [userId, processResponse]
   ); // Giả định API_URL, setUpdateLoading, setUpdateError được truy cập
 
+  const updateCookingSkill = useCallback(async () => {
+    if (!userId) {
+      Alert.alert("Lỗi", "Không tìm thấy ID người dùng.");
+      return;
+    }
+
+    // Giả định endpoint lưu tủ lạnh là /api/users/:id/fridge
+    const endpoint = `${API_URL}users/${userId}/ai_profile/cooking-skill/increase`;
+
+    const config = {
+      method: "PATCH", // Hoặc PUT tùy theo API của bạn
+      headers: { "Content-Type": "application/json" },
+    };
+
+    setUpdateLoading(true);
+    setUpdateError(null);
+
+    try {
+      const response = await fetch(endpoint, config);
+      await processResponse(response, endpoint);
+
+      // console.log("Lưu dữ liệu tủ lạnh thành công.");
+    } catch (error) {
+      setUpdateError(error.message);
+      // Alert.alert("Lỗi Lưu Tủ Lạnh", error.message);
+      throw error;
+    } finally {
+      setUpdateLoading(false);
+    }
+  }, [userId, processResponse]);
+
+  const updateCookedStatus = useCallback(
+    async (day) => {
+      if (!userId) {
+        Alert.alert("Lỗi", "Không tìm thấy ID người dùng.");
+        return;
+      }
+
+      // Giả định endpoint lưu tủ lạnh là /api/users/:id/fridge
+      const endpoint = `${API_URL}users/${userId}/fridge/${day}`;
+
+      const config = {
+        method: "PATCH", // Hoặc PUT tùy theo API của bạn
+        headers: { "Content-Type": "application/json" },
+      };
+
+      setUpdateLoading(true);
+      setUpdateError(null);
+
+      try {
+        const response = await fetch(endpoint, config);
+        await processResponse(response, endpoint);
+
+        console.log("Lưu dữ liệu tủ lạnh thành công.");
+      } catch (error) {
+        setUpdateError(error.message);
+        Alert.alert("Lỗi Lưu Tủ Lạnh", error.message);
+        throw error;
+      } finally {
+        setUpdateLoading(false);
+      }
+    },
+    [userId, processResponse]
+  );
+
   return {
     updateLoading,
     updateError,
     completeHabitCollection,
     updateFridge,
     fetchWeeklyData,
+    updateCookingSkill,
+    updateCookedStatus,
   };
 };

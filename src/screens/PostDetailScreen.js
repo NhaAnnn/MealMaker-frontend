@@ -358,7 +358,7 @@ export default function PostDetailScreen() {
             <InfoBox
               icon="podium-outline"
               label="Difficulty"
-              value={post.difficulty_score}
+              value={"Rating..."}
               score={post.difficulty_score}
             />
           </View>

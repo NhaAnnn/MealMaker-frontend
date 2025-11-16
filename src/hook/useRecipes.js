@@ -16,25 +16,22 @@ const getRandomItems = (arr, num) => {
 
 // --- HOOK CHÍNH: useRecipes (Đã refactor) ---
 export const useRecipes = (initialRecipeId = null) => {
-  const { userId, isLoggedIn, isLoading: isAuthLoading } = useAuth();
+  const { userId, isLoggedIn, isLoading: isAuthLoading } = useAuth(); // State cho List View
 
-  // State cho List View
-  const [recipes, setRecipes] = useState([]);
+  const [recipes, setRecipes] = useState([]); // State cho Detail View
 
-  // State cho Detail View
   const [recipeDetail, setRecipeDetail] = useState(null);
-  const [isLikedDetail, setIsLikedDetail] = useState(false);
+  const [isLikedDetail, setIsLikedDetail] = useState(false); // State chung cho API (của request gần nhất)
 
-  // State chung cho API (của request gần nhất)
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
   /**
    * Hàm fetch chung để xử lý yêu cầu, bắt lỗi/trạng thái tải và xử lý phản hồi.
    * @param {string} endpoint - Phần cuối của URL (ví dụ: 'recipes' hoặc 'recipes/123')
    * @param {object} options - Cấu hình fetch (method, headers, body)
    * @returns {Promise<any>} Dữ liệu phản hồi từ API.
    */
+
   const apiCall = useCallback(async (endpoint, options = {}) => {
     // 1. Quản lý trạng thái loading/error chung
     setIsLoading(true);
@@ -52,9 +49,8 @@ export const useRecipes = (initialRecipeId = null) => {
         data = await response.json();
       } else {
         rawErrorText = await response.text();
-      }
+      } // 2. Xử lý lỗi HTTP
 
-      // 2. Xử lý lỗi HTTP
       if (!response.ok) {
         let errorMessage = "Đã xảy ra lỗi không xác định từ máy chủ.";
         if (data.message) {
@@ -64,9 +60,8 @@ export const useRecipes = (initialRecipeId = null) => {
           console.error("Phản hồi lỗi dạng HTML/Text:", rawErrorText);
         }
         throw new Error(errorMessage);
-      }
+      } // 3. Trả về dữ liệu (Controller của bạn trả về JSON với cấu trúc { success: true, data: ... })
 
-      // 3. Trả về dữ liệu (Controller của bạn trả về JSON với cấu trúc { success: true, data: ... })
       return data;
     } catch (err) {
       console.error("API Call Error:", err);
@@ -75,9 +70,8 @@ export const useRecipes = (initialRecipeId = null) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // --- 1. HÀM TẢI DỮ LIỆU CÔNG THỨC CHUNG (QUẢN LÝ TRẠNG THÁI LIKE) ---
 
-  // --- 1. HÀM TẢI DỮ LIỆU CÔNG THỨC CHUNG (QUẢN LÝ TRẠNG THÁI LIKE) ---
   const fetchAllRecipes = useCallback(
     async (limit = 0) => {
       if (isAuthLoading) return [];
@@ -106,9 +100,8 @@ export const useRecipes = (initialRecipeId = null) => {
       }
     },
     [apiCall, isAuthLoading, isLoggedIn, userId] // Dependencies cập nhật
-  );
+  ); // --- 2. HÀM TẢI CÔNG THỨC ĐÃ THÍCH CỦA NGƯỜI DÙNG ---
 
-  // --- 2. HÀM TẢI CÔNG THỨC ĐÃ THÍCH CỦA NGƯỜI DÙNG ---
   const fetchLikedRecipes = useCallback(async () => {
     if (!userId) {
       return [];
@@ -122,9 +115,8 @@ export const useRecipes = (initialRecipeId = null) => {
       // Lỗi đã được xử lý trong apiCall
       throw err;
     }
-  }, [apiCall, userId]);
+  }, [apiCall, userId]); // --- 3. HÀM TẢI CHI TIẾT CÔNG THỨC THEO ID ---
 
-  // --- 3. HÀM TẢI CHI TIẾT CÔNG THỨC THEO ID ---
   const fetchRecipeById = useCallback(
     async (recipeId) => {
       if (!recipeId) return null;
@@ -151,15 +143,13 @@ export const useRecipes = (initialRecipeId = null) => {
 
         return recipeData;
       } catch (err) {
-        setRecipeDetail(null);
-        // Lỗi đã được xử lý trong apiCall
+        setRecipeDetail(null); // Lỗi đã được xử lý trong apiCall
         throw err;
       }
     },
     [apiCall, isLoggedIn, userId, fetchLikedRecipes]
-  );
+  ); // --- 4. HÀM THỰC HIỆN LIKE/UNLIKE (Optimistic Update) ---
 
-  // --- 4. HÀM THỰC HIỆN LIKE/UNLIKE (Optimistic Update) ---
   const toggleLike = useCallback(
     async (recipeId, currentIsLiked) => {
       if (!userId) {
@@ -175,10 +165,8 @@ export const useRecipes = (initialRecipeId = null) => {
       const options = { method: "PUT", headers, body: JSON.stringify(body) };
 
       const newIsLiked = !currentIsLiked;
-      const countChange = newIsLiked ? 1 : -1;
+      const countChange = newIsLiked ? 1 : -1; // 1. Optimistic Update (Cập nhật giao diện ngay lập tức) // Cập nhật List View
 
-      // 1. Optimistic Update (Cập nhật giao diện ngay lập tức)
-      // Cập nhật List View
       setRecipes((prevRecipes) => {
         if (!Array.isArray(prevRecipes)) return [];
         return prevRecipes.map((recipe) => {
@@ -196,8 +184,7 @@ export const useRecipes = (initialRecipeId = null) => {
           }
           return recipe;
         });
-      });
-      // Cập nhật Detail View
+      }); // Cập nhật Detail View
       if (
         recipeDetail &&
         (recipeDetail.id === recipeId || recipeDetail._id === recipeId)
@@ -213,10 +200,8 @@ export const useRecipes = (initialRecipeId = null) => {
           likeCount: newLikeCountDetail,
         }));
         setIsLikedDetail(newIsLiked);
-      }
+      } // 2. Gọi API (Sử dụng apiCall, nhưng bỏ qua quản lý loading/error chung // vì đã có Optimistic Update, và không muốn nó ảnh hưởng đến trạng thái chung của hook)
 
-      // 2. Gọi API (Sử dụng apiCall, nhưng bỏ qua quản lý loading/error chung
-      // vì đã có Optimistic Update, và không muốn nó ảnh hưởng đến trạng thái chung của hook)
       try {
         await apiCall(endpoint, options);
       } catch (err) {
@@ -248,14 +233,11 @@ export const useRecipes = (initialRecipeId = null) => {
         });
         setIsLikedDetail(currentIsLiked);
 
-        console.error("Lỗi", `Không thể ${action} công thức: ${err.message}`);
-        // Không cần throw err ở đây nếu bạn muốn Optimistic Update vẫn hoạt động
+        console.error("Lỗi", `Không thể ${action} công thức: ${err.message}`); // Không cần throw err ở đây nếu bạn muốn Optimistic Update vẫn hoạt động
       }
     },
     [apiCall, userId, recipeDetail] // Thêm apiCall vào dependency
-  );
-
-  // --- 5. HÀM TÌM KIẾM CÔNG THỨC BẰNG NGUYÊN LIỆU (NEW) ---
+  ); // --- 5. HÀM TÌM KIẾM CÔNG THỨC BẰNG NGUYÊN LIỆU (Giữ nguyên) ---
   /**
    * Tìm kiếm công thức dựa trên danh sách nguyên liệu và ID người dùng.
    * @param {string[]} ingredients - Mảng các chuỗi nguyên liệu.
@@ -263,6 +245,7 @@ export const useRecipes = (initialRecipeId = null) => {
    * @param {number} size - Số lượng trên mỗi trang (mặc định 10).
    * @returns {Promise<object>} Dữ liệu trả về bao gồm { page, size, total, data: recipes }
    */
+
   const searchRecipesByIngredients = useCallback(
     async (ingredients = [], page = 1, size = 10) => {
       if (isAuthLoading) return { data: [], total: 0 };
@@ -289,9 +272,8 @@ export const useRecipes = (initialRecipeId = null) => {
 
       try {
         // apiCall đã bao gồm logic xử lý loading/error
-        const data = await apiCall(endpoint, options);
+        const data = await apiCall(endpoint, options); // Trả về toàn bộ response data (chứa page, size, total, data)
 
-        // Trả về toàn bộ response data (chứa page, size, total, data)
         return data.data || { data: [], total: 0 };
       } catch (err) {
         // Lỗi đã được xử lý trong apiCall
@@ -299,9 +281,59 @@ export const useRecipes = (initialRecipeId = null) => {
       }
     },
     [apiCall, userId, isAuthLoading]
+  ); // --- 6. HÀM TÌM KIẾM CÔNG THỨC BẰNG TAGS (NEW) ---
+  /**
+   * Tải 10 công thức hàng đầu dựa trên danh sách tags cho người dùng hiện tại.
+   * @param {string | string[]} tags - Tags để tìm kiếm (chuỗi phân cách bằng dấu phẩy hoặc mảng).
+   * @returns {Promise<Array<Object>>} Mảng các công thức.
+   */
+
+  const fetchRecipesByTags = useCallback(
+    async (tags) => {
+      if (isAuthLoading) return [];
+
+      if (!tags) {
+        setError("Vui lòng cung cấp danh sách tags.");
+        return [];
+      } // Xử lý tags thành chuỗi phân cách bằng dấu phẩy
+      let tagsString;
+      if (Array.isArray(tags)) {
+        tagsString = tags
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+          .join(",");
+      } else if (typeof tags === "string") {
+        tagsString = tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+          .join(",");
+      } else {
+        setError("Định dạng tags không hợp lệ.");
+        return [];
+      }
+
+      if (tagsString.length === 0) {
+        setError("Không có tags hợp lệ nào được cung cấp.");
+        return [];
+      } // Endpoint của bạn: GET /recipes/tags/:userId?tags=tag1,tag2,...
+      console.log(tagsString);
+
+      const endpoint = `${RECIPE_PATH}/tags/${userId}?tags=${tagsString}`;
+
+      try {
+        const data = await apiCall(endpoint, { method: "GET" });
+        const foundRecipes = data.data || [];
+        // console.log(foundRecipes);
+        return foundRecipes;
+      } catch (err) {
+        // Lỗi đã được xử lý trong apiCall
+        return [];
+      }
+    },
+    [apiCall, isAuthLoading, userId]
   );
 
-  // --- EFFECTS (Giữ nguyên) ---
   useEffect(() => {
     if (initialRecipeId && !isAuthLoading) {
       fetchRecipeById(initialRecipeId);
@@ -322,7 +354,8 @@ export const useRecipes = (initialRecipeId = null) => {
     fetchLikedRecipes,
     fetchRecipeById,
     toggleLike,
-    searchRecipesByIngredients, // Thêm hàm mới vào return
+    searchRecipesByIngredients,
+    fetchRecipesByTags, // <-- Thêm hàm mới vào return
 
     recipe: recipeDetail,
     isLiked: isLikedDetail,

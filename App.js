@@ -23,6 +23,7 @@ import SignUpScreen from "./src/screens/SignUpScreen";
 import HabitCollectionScreen from "./src/screens/HabitCollectionScreen";
 import ShoppingListDetailScreen from "./src/screens/ShoppingListDetailScreen";
 import LikedPostsScreen from "./src/screens/LikedPostsScreen";
+import QuizScreen from "./src/screens/QuizScreen";
 
 // --- Import Auth Context ---
 import { AuthProvider, useAuth } from "./src/components/AuthContext";
@@ -159,6 +160,8 @@ function AuthenticatedAppFlow() {
         name="LikedPosts"
         component={LikedPostsScreen}
       />
+
+      <AuthenticatedStack.Screen name="Quiz" component={QuizScreen} />
     </AuthenticatedStack.Navigator>
   );
 }

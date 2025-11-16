@@ -6,16 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
-  RefreshControl, // Đã thêm RefreshControl
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-// import Checkbox from "expo-checkbox"; // ĐÃ LOẠI BỎ CHECKBOX
 import { useAuth } from "../components/AuthContext";
 
 // --- Colors ---
 const PRIMARY_ACCENT = "#AB9574";
-const BACKGROUND_LIGHT = "#F5F5F5";
+const BACKGROUND_LIGHT = "#F9EBD7";
 const PRIMARY_LIGHT = "#AB957420";
 const TEXT_DARK = "#3D2C1C";
 const ACTION_GREEN = "#27AE60";
@@ -43,7 +41,6 @@ const normalizeMapData = (
       quantity: quantity || "",
       category: category,
       isInStock: isInStock,
-      // checked: false, // LOẠI BỎ CHECKED
       id: `${category.replace(
         " ",
         ""
@@ -85,7 +82,6 @@ const normalizeIngredients = (
       quantity: quantity,
       category: category,
       isInStock: isInStock,
-      // checked: false, // LOẠI BỎ CHECKED
       id: `${category.replace(
         " ",
         ""
@@ -109,25 +105,26 @@ const normalizeSeasoningList = (list, day) => {
       quantity: "", // Không có quantity cho gia vị
       category: "Seasoning",
       isInStock: false, // Mặc định là cần mua (To Buy)
-      // checked: false, // LOẠI BỎ CHECKED
       id: `Seasoning_shoppinglist_${day}_I${index}_${cleanNameForId}`,
     };
   });
 };
 
-// Component Render Card cho mỗi nhóm
-const RenderShoppingCardFinal = ({
-  title,
-  items,
-  color,
-  icon,
-  showStatus,
-  // toggleCheckbox, // LOẠI BỎ PROPS KHÔNG CẦN THIẾT
-}) => {
+// Component Render Card cho mỗi nhóm (Đã thêm logic toggle)
+const RenderShoppingCardFinal = ({ title, items, color, icon, showStatus }) => {
+  // ⭐️ Thêm state để quản lý trạng thái đóng/mở
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  if (items.length === 0 && title.indexOf("In Stock") !== -1) {
+    // Ẩn Card In Stock nếu không có item nào.
+    return null;
+  }
+
   if (
     items.length === 0 &&
     title.indexOf("In Stock") === -1 &&
-    title.indexOf("To Buy") === -1
+    title.indexOf("To Buy") === -1 &&
+    title.indexOf("Seasoning") === -1
   ) {
     return null;
   }
@@ -138,16 +135,7 @@ const RenderShoppingCardFinal = ({
 
     return (
       <View key={item.id} style={styles.ingredientItem}>
-        {/* ĐÃ LOẠI BỎ CHECKBOX */}
-
-        <Text
-          style={[
-            styles.itemText,
-            // styles.itemChecked, // LOẠI BỎ STYLE LIÊN QUAN ĐẾN CHECKED
-            // Giữ logic làm mờ/xám nếu In Stock
-            item.isInStock && { color: "#8A8A8A" },
-          ]}
-        >
+        <Text style={[styles.itemText, item.isInStock && { color: "#8A8A8A" }]}>
           {/* Hiển thị quantity và khoảng trắng chỉ khi quantity có dữ liệu */}
           {item.quantity ? (
             <Text style={styles.quantityText}>{item.quantity} </Text>
@@ -168,9 +156,18 @@ const RenderShoppingCardFinal = ({
     );
   };
 
+  const collapseIconName = isCollapsed
+    ? "chevron-down-outline"
+    : "chevron-up-outline";
+
   return (
     <View style={[styles.shoppingCard, { borderColor: color }]}>
-      <View style={[styles.cardHeader, { backgroundColor: color + "15" }]}>
+      {/* ⭐️ Bọc Header trong TouchableOpacity để xử lý sự kiện nhấn */}
+      <TouchableOpacity
+        style={[styles.cardHeader, { backgroundColor: color + "15" }]}
+        onPress={() => setIsCollapsed(!isCollapsed)}
+        activeOpacity={0.8}
+      >
         <Ionicons
           name={icon}
           size={20}
@@ -179,16 +176,27 @@ const RenderShoppingCardFinal = ({
         />
         <Text style={[styles.cardTitle, { color: color }]}>{title}</Text>
         <Text style={styles.cardCount}>({items.length} items)</Text>
-      </View>
-      <View style={styles.cardBody}>
-        {items.length > 0 ? (
-          items.map(itemRenderer)
-        ) : (
-          <Text style={styles.noDataText}>
-            Không có nguyên liệu nào trong nhóm này.
-          </Text>
-        )}
-      </View>
+        {/* ⭐️ Thêm icon toggle */}
+        <Ionicons
+          name={collapseIconName}
+          size={20}
+          color={color}
+          style={{ marginLeft: 8 }}
+        />
+      </TouchableOpacity>
+
+      {/* ⭐️ Chỉ hiển thị Body khi KHÔNG bị collapse */}
+      {!isCollapsed && (
+        <View style={styles.cardBody}>
+          {items.length > 0 ? (
+            items.map(itemRenderer)
+          ) : (
+            <Text style={styles.noDataText}>
+              Không có nguyên liệu nào trong nhóm này.
+            </Text>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -199,29 +207,39 @@ const RenderShoppingCardFinal = ({
 
 export default function ShoppingListDetailScreen({ route, navigation }) {
   const { day, meals } = route.params;
-  // Sử dụng setUserData để cập nhật dữ liệu sau khi fetch
   const { userData, setUserData, fetchUserData } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
-  // Giữ nguyên ingredients và shoppingListItems nhưng bỏ thuộc tính checked khỏi logic UI
   const [ingredients, setIngredients] = useState([]);
   const [shoppingListItems, setShoppingListItems] = useState([]);
-  const [isRefreshing, setIsRefreshing] = useState(false); // State cho Pull-to-Refresh
-
-  // State để buộc useEffect chạy lại sau khi refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // THÊM:
+  const getTodayDayName = () => {
+    const today = new Date();
+    const dayNames = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    return dayNames[today.getDay()];
+  };
+  const currentDayName = useMemo(getTodayDayName, []);
+  const shouldShowInStockCard = day.toLowerCase() === currentDayName;
   // Logic xử lý Loading và Khởi tạo trạng thái ingredients
   useEffect(() => {
     let isMounted = true;
-    setIsLoading(true); // Bắt đầu load
+    setIsLoading(true);
 
-    // 1. Nếu userData chưa có (hoặc cần làm mới), fetch nó
     if (!userData) {
       fetchUserData(userData?._id);
     }
 
-    // 2. Nếu userData đã có, tiến hành xử lý dữ liệu
     if (userData && day && isMounted) {
       console.log(`Dữ liệu Shopping List cho ${day} đã được tải.`);
 
@@ -243,22 +261,22 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
         }
       });
 
-      // Khởi tạo trạng thái ingredients (BỎ checked: false)
+      // Khởi tạo trạng thái ingredients
       const initialIngredients = mainIngredientsFromRecipe.map(
         (item, index) => ({
           ...item,
           id: item.id || `${item.name}-${day}-${index}`,
-          // checked: false, // LOẠI BỎ
         })
       );
 
-      // TẠO LIST CẦN MUA CHUNG CHO CARD 2 VÀ CARD 4
+      // TẠO LIST CẦN MUA CHUNG CHO CARD 2 VÀ CARD 4 (seasoning và main needed list GỐC)
       const seasoningNeededList =
         userData.weekly_shopping_list?.[day]?.seasoning || [];
       const seasoningItems = normalizeSeasoningList(seasoningNeededList, day);
 
       const neededListDayMap =
         userData.weekly_shopping_list?.[day]?.ingredients;
+      // Lấy danh sách main needed list GỐC (nguồn dữ liệu để so sánh)
       const mainNeededItems = normalizeMapData(
         neededListDayMap,
         "Main Ingredient",
@@ -267,11 +285,11 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
         "Needed"
       );
 
-      // Khởi tạo shoppingListItems (BỎ checked: false)
+      // Khởi tạo shoppingListItems (Dùng cho seasoning và để trích xuất needed list cho useMemo)
       const initialShoppingListItems = [
         ...seasoningItems,
         ...mainNeededItems,
-      ].map((item) => ({ ...item /*, checked: false*/ }));
+      ].map((item) => ({ ...item }));
 
       setIngredients(initialIngredients);
       setShoppingListItems(initialShoppingListItems);
@@ -283,9 +301,8 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
     };
   }, [userData, day, fetchUserData, refreshKey]);
 
-  // --- useMemo: Logic so sánh In Stock (Dùng logic cũ, so sánh với Fridge) ---
+  // --- useMemo: Logic so sánh MỚI (Dựa trên danh sách cần mua gốc) ---
 
-  // useMemo: Phân loại thành 4 danh sách dựa trên dữ liệu hiện tại
   const fourGroupedLists = useMemo(() => {
     if (isLoading || !userData || !day) {
       return {
@@ -296,18 +313,11 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
       };
     }
 
-    // 1. Dữ liệu Tủ lạnh (Card 3)
-    const rawFridgeItems = userData.fridge;
-    // Dùng normalizeMapData để tạo danh sách fridge items có thể so sánh
-    const mainInStock = normalizeMapData(
-      rawFridgeItems,
-      "Main Ingredient",
-      true,
-      day,
-      "Fridge"
+    // 1. Lấy danh sách TÊN đã chuẩn hóa của các nguyên liệu chính CẦN MUA GỐC (từ shopping_list.ingredients)
+    const rawNeededItems = shoppingListItems.filter(
+      (item) => item.category === "Main Ingredient"
     );
-    // Tạo danh sách TÊN đã chuẩn hóa từ tủ lạnh
-    const normalizedFridgeNames = mainInStock.map((i) =>
+    const normalizedNeededNames = rawNeededItems.map((i) =>
       i.name.toLowerCase().trim()
     );
 
@@ -315,42 +325,41 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
     const mainInRecipe = ingredients.map((item) => {
       const itemBaseName = item.name.toLowerCase().trim();
 
-      // ⭐️ LOGIC SO SÁNH TÊN LINH HOẠT VỚI FRIDGE
-      const isStocked = normalizedFridgeNames.some(
-        (fridgeName) =>
-          // Kiểm tra xem tên công thức có chứa tên tủ lạnh HOẶC tên tủ lạnh có chứa tên công thức
-          itemBaseName.includes(fridgeName) || fridgeName.includes(itemBaseName)
+      // ⭐️ LOGIC MỚI: Kiểm tra xem item trong công thức CÓ nằm trong danh sách CẦN MUA GỐC không.
+      const isNeededInShoppingList = normalizedNeededNames.some(
+        (neededName) =>
+          itemBaseName.includes(neededName) || neededName.includes(itemBaseName)
       );
 
-      return { ...item, isInStock: isStocked };
+      // THEO YÊU CẦU: CÓ trong danh sách cần mua gốc -> To Buy (isInStock: false)
+      // KHÔNG có trong danh sách cần mua gốc -> In Stock (isInStock: true)
+      return { ...item, isInStock: !isNeededInShoppingList };
     });
 
-    // Sắp xếp: In Stock (true) xuống cuối, Cần Mua (false) lên đầu
+    // Sắp xếp: In Stock (true) xuống cuối, Cần Mua (false) lên đầu (Cho Card 1)
     mainInRecipe.sort((a, b) =>
       a.isInStock === b.isInStock ? 0 : a.isInStock ? 1 : -1
     );
 
-    // 3. Phân chia ShoppingListItems đã được tạo ở useEffect (Card 2 & 4)
+    // 3. Phân chia ShoppingListItems đã được tạo ở useEffect
+    // Card 2: Seasoning
     const seasoningInRecipe = shoppingListItems.filter(
       (item) => item.category === "Seasoning"
     );
-    const mainNeeded = shoppingListItems.filter(
-      (item) => item.category === "Main Ingredient"
-    );
+    const mainInStockFromRecipe = mainInRecipe.filter((item) => item.isInStock);
+
+    // ⭐️ 4. TẠO CARD 4 (To Buy) MỚI TỪ CARD 1 (Nguyên liệu chính cần mua)
+    const mainNeededFromRecipe = mainInRecipe.filter((item) => !item.isInStock);
+
+    // ⭐️ 5. TẠO CARD 3 (In Stock) MỚI TỪ CARD 1 (Nguyên liệu chính đã có)
 
     return {
       mainInRecipe: mainInRecipe,
       seasoningInRecipe: seasoningInRecipe,
-      mainInStock: mainInStock,
-      mainNeeded: mainNeeded,
+      mainInStock: mainInStockFromRecipe,
+      mainNeeded: mainNeededFromRecipe,
     };
   }, [isLoading, userData, day, ingredients, shoppingListItems]);
-
-  // Function để xử lý đánh dấu đã mua/chưa mua (CHỈ LÀ PLACEHOLDER, KHÔNG CẬP NHẬT UI)
-  const toggleCheckbox = (id) => {
-    // Do Checkbox đã bị loại bỏ, hàm này chỉ còn là placeholder
-    console.log(`Lưu ý: Tính năng Checkbox đã bị loại bỏ. Item ID: ${id}`);
-  };
 
   // Hàm xử lý Refresh (kéo xuống)
   const handleRefresh = useCallback(async () => {
@@ -365,14 +374,10 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
     }
   }, [fetchUserData, userData?._id]);
 
-  // Tính toán số lượng cần mua (BỎ boughtCount)
+  // Tính toán số lượng cần mua (chỉ tính những thứ là To Buy)
   const neededCount =
-    fourGroupedLists.mainInRecipe.filter((i) => !i.isInStock).length +
-    fourGroupedLists.seasoningInRecipe.length +
-    fourGroupedLists.mainNeeded.length;
-
-  // boughtCount = 0 do không còn checkbox
-  const boughtCount = 0;
+    fourGroupedLists.mainNeeded.length +
+    fourGroupedLists.seasoningInRecipe.length;
 
   const displayDay = day.charAt(0).toUpperCase() + day.slice(1);
 
@@ -386,12 +391,6 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
               <Ionicons name="cart-outline" size={20} color={TEXT_DARK} />{" "}
               Shopping List ({displayDay})
             </Text>
-            <Text style={styles.headerSubtitle}>
-              <Text style={{ fontWeight: "bold" }}>
-                ({/* Hiển thị 0/Needed do đã loại bỏ Checkbox */}
-                {boughtCount}/{neededCount} items)
-              </Text>
-            </Text>
           </View>
 
           <TouchableOpacity
@@ -401,9 +400,14 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
             <Ionicons name="close-circle" size={30} color={CLOSE_RED} />
           </TouchableOpacity>
         </View>
-
         <View style={styles.mealInfoSection}>
-          <Text style={styles.mealInfoText}>For meals: {meals}</Text>
+          <Ionicons
+            name="pizza-outline"
+            size={16}
+            color={PRIMARY_ACCENT}
+            style={styles.mealIcon}
+          />
+          <Text style={styles.mealInfoText}>For meals: **{meals}**</Text>
         </View>
 
         {/* --- Loading Indicator --- */}
@@ -436,8 +440,8 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
                   size={14}
                   color={TEXT_DARK}
                 />
-                **Lưu ý:** Mục "In Stock" (màu xám) được lấy từ dữ liệu **Tủ
-                lạnh** và được **so khớp tên chính xác**.
+                Note: The main ingredient - To Buy is based on the ingredients
+                in the refrigerator. Please ensure it is correct.
               </Text>
             </View>
             {/* Card 1: Nguyên liệu chính trong công thức  */}
@@ -447,9 +451,7 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
               color={PRIMARY_ACCENT}
               icon="restaurant-outline"
               showStatus={true}
-              toggleCheckbox={toggleCheckbox}
             />
-
             {/* ⭐ Card 2: Seasoning - LẤY TRỰC TIẾP TỪ SHOPPING LIST (Cần mua) ⭐ */}
             <RenderShoppingCardFinal
               title="Seasoning - In Recipe"
@@ -457,35 +459,31 @@ export default function ShoppingListDetailScreen({ route, navigation }) {
               color={PRIMARY_ACCENT}
               icon="flask-outline"
               showStatus={false}
-              toggleCheckbox={toggleCheckbox}
             />
+            {/* ⭐️ Card 3 MỚI: Main Ingredient - In Stock (Chỉ hiển thị nếu là ngày hiện tại) */}
+            {shouldShowInStockCard && (
+              <RenderShoppingCardFinal
+                title="Main Ingredient - In Stock"
+                items={fourGroupedLists.mainInStock}
+                color={IN_STOCK_COLOR}
+                icon="cube-outline"
+                showStatus={false}
+              />
+            )}
 
-            {/* Card 3: Main Ingredient - In Stock  */}
-            <RenderShoppingCardFinal
-              title="Main Ingredient - In Stock"
-              items={fourGroupedLists.mainInStock}
-              color={IN_STOCK_COLOR}
-              icon="cube-outline"
-              showStatus={false}
-              toggleCheckbox={() => {}}
-            />
-
-            {/* Card 4: Main Ingredient - To Buy */}
+            {/* Card 4 MỚI: Main Ingredient - To Buy (Nguyên liệu chính CẦN MUA theo công thức và shopping list gốc) */}
             <RenderShoppingCardFinal
               title="Main Ingredient - To Buy"
               items={fourGroupedLists.mainNeeded}
               color={NEEDED_COLOR}
               icon="basket-outline"
               showStatus={false}
-              toggleCheckbox={toggleCheckbox}
             />
-
             {/* Action Button */}
             <TouchableOpacity style={styles.actionButtonFooter}>
               <Ionicons name="share-social-outline" size={20} color="#fff" />
               <Text style={styles.actionButtonText}>Share List</Text>
             </TouchableOpacity>
-
             <View style={{ height: 40 }} />
           </ScrollView>
         )}
@@ -503,7 +501,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     backgroundColor: BACKGROUND_LIGHT,
     width: "100%",
-    height: "90%",
+    height: "100%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     shadowColor: "#000",
@@ -547,15 +545,24 @@ const styles = StyleSheet.create({
 
   // --- Meal Info ---
   mealInfoSection: {
+    flexDirection: "row", // Thêm flexDirection để chứa icon và text
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: "#fff", // Thay đổi màu nền nhẹ
     borderBottomWidth: 1,
-    borderBottomColor: PRIMARY_LIGHT,
+    borderBottomColor: PRIMARY_ACCENT,
+    borderTopWidth: 1,
+    borderTopColor: PRIMARY_ACCENT,
+  },
+  mealIcon: {
+    marginRight: 8,
   },
   mealInfoText: {
-    fontSize: 13,
+    fontSize: 14, // Tăng kích thước font một chút
     color: TEXT_DARK,
+    fontWeight: "600", // Làm cho chữ đậm hơn
+    marginRight: 20,
   },
 
   // --- Shopping Card Styles ---
@@ -579,7 +586,7 @@ const styles = StyleSheet.create({
     borderBottomColor: PRIMARY_LIGHT,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "900",
   },
   cardCount: {
@@ -600,9 +607,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     justifyContent: "space-between",
   },
-  // ĐÃ BỎ CHECKBOX STYLE
   itemText: {
-    fontSize: 15,
+    fontSize: 13,
     color: TEXT_DARK,
     flex: 1,
   },
@@ -610,7 +616,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginRight: 5,
   },
-  // ĐÃ BỎ itemChecked
   // --- Status Tag Styles ---
   statusTag: {
     paddingHorizontal: 8,
