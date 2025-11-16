@@ -50,13 +50,13 @@ export default function SignUpScreen() {
 
       // Không cần điều hướng thủ công ở đây
       Alert.alert(
-        "Thành công",
-        "Đăng ký hoàn tất! Tiếp tục để thiết lập sở thích."
+        "Success",
+        "Registration completed! Continue to set up preferences."
       );
     } catch (error) {
       Alert.alert(
-        "Lỗi Đăng ký",
-        "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin."
+        "Registration Error",
+        "Registration failed. Please check your information."
       );
     } finally {
       setIsLoading(false);

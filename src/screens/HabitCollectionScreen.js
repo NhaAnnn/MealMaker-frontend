@@ -9,7 +9,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUserUpdateAPI } from "../hook/useUsers";
 
@@ -29,11 +29,11 @@ const THEME_PREFERENCES = [
     description: "Which regional flavors do you love? (Select multiple)",
     key: "region",
     tags: [
-      { name: "Vietnam", value: "Vietnam", icon: "flag-outline" },
-      { name: "Asia (Other)", value: "Asia", icon: "restaurant-outline" },
-      { name: "Europe/Americas", value: "Europe", icon: "pizza-outline" },
-      { name: "Latin America", value: "Latinh", icon: "bonfire-outline" },
-      { name: "Mediterranean", value: "Mediterranean", icon: "sunny-outline" },
+      { name: "Vietnam", value: "Vietnam", icon: "flag" },
+      { name: "Asia (Other)", value: "Asia", icon: "food-fork-drink" },
+      { name: "Europe/Americas", value: "Europe", icon: "pizza" },
+      { name: "Latin America", value: "Latinh", icon: "fire" },
+      { name: "Mediterranean", value: "Mediterranean", icon: "weather-sunny" },
     ],
     singleSelection: false,
   },
@@ -45,12 +45,12 @@ const THEME_PREFERENCES = [
       "Which dishes do you always want to eat or cook? (Select multiple)",
     key: "favorite_dishes",
     tags: [
-      { name: "Pho", value: "Pho", icon: "nutrition-outline" }, // FIXED ICON
-      { name: "Banh Mi", value: "BanhMi", icon: "fast-food-outline" }, // FIXED ICON
-      { name: "Sushi", value: "Sushi", icon: "fish-outline" },
-      { name: "Pizza", value: "Pizza", icon: "pizza-outline" }, // FIXED ICON
-      { name: "Burger", value: "Burger", icon: "fast-food-outline" },
-      { name: "Salad/Vegetables", value: "Salad", icon: "leaf-outline" },
+      { name: "Pho", value: "Pho", icon: "bowl-mix" },
+      { name: "Banh Mi", value: "BanhMi", icon: "baguette" },
+      { name: "Sushi", value: "Sushi", icon: "fish" },
+      { name: "Pizza", value: "Pizza", icon: "pizza" },
+      { name: "Burger", value: "Burger", icon: "hamburger" },
+      { name: "Salad/Vegetables", value: "Salad", icon: "leaf" },
     ],
     singleSelection: false,
   },
@@ -62,13 +62,12 @@ const THEME_PREFERENCES = [
       "Which main ingredients are indispensable in your kitchen? (Select multiple)",
     key: "favorite_ingredients",
     tags: [
-      { name: "Chicken", value: "Chicken", icon: "chicken-outline" },
-      { name: "Beef", value: "Beef", icon: "color-fill-outline" },
-      { name: "Seafood", value: "Seafood", icon: "fish-outline" },
-      { name: "Eggs", value: "Eggs", icon: "egg-outline" },
-      { name: "Carrot", value: "Carrot", icon: "leaf-outline" },
-      { name: "Rice/Noodles", value: "Rice/Noodles", icon: "cube-outline" },
-      { name: "Potato", value: "Potato", icon: "cube-outline" },
+      { name: "Chicken", value: "Chicken", icon: "food-drumstick" }, // ĐÃ SỬA: chicken-leg -> food-drumstick (gần gũi và chắc chắn có)
+      { name: "Beef", value: "Beef", icon: "cow" },
+      { name: "Seafood", value: "Seafood", icon: "fish" },
+      { name: "Eggs", value: "Eggs", icon: "egg-outline" }, // ĐÃ SỬA: egg-multiple -> egg-outline (chắc chắn có)
+      { name: "Carrot", value: "Carrot", icon: "carrot" },
+      { name: "Rice/Noodles", value: "Rice/Noodles", icon: "rice" },
     ],
     singleSelection: false,
   },
@@ -79,11 +78,11 @@ const THEME_PREFERENCES = [
     description: "Which diet are you currently following? (Select multiple)",
     key: "diet",
     tags: [
-      { name: "Vegan", value: "Vegan", icon: "leaf-outline" },
-      { name: "Vegetarian", value: "Vegetarian", icon: "nutrition-outline" },
-      { name: "Gluten-Free", value: "Gluten-Free", icon: "ban-outline" },
-      { name: "Low Carb", value: "Low-Carb", icon: "water-outline" },
-      { name: "High Protein", value: "High-Protein", icon: "barbell-outline" },
+      { name: "Vegan", value: "Vegan", icon: "leaf" },
+      { name: "Vegetarian", value: "Vegetarian", icon: "food-apple" },
+      { name: "Gluten-Free", value: "Gluten-Free", icon: "circle-off-outline" },
+      { name: "Low Carb", value: "Low-Carb", icon: "corn-off" }, // ĐÃ SỬA: water-low -> corn-off (biểu thị việc kiêng tinh bột/carb)
+      { name: "High Protein", value: "High-Protein", icon: "dumbbell" },
     ],
     singleSelection: false,
   },
@@ -94,16 +93,15 @@ const THEME_PREFERENCES = [
     description: "What is your current cooking skill level? (Select one)",
     key: "cooking_skill_level",
     tags: [
-      { name: "Beginner (1)", value: 1, icon: "sad-outline" },
-      { name: "Intermediate (2)", value: 2, icon: "happy-outline" },
-      { name: "Advanced (3)", value: 3, icon: "star-outline" },
-      { name: "Expert (4)", value: 4, icon: "medal-outline" },
-      { name: "Master (5)", value: 5, icon: "trophy-outline" },
+      { name: "Beginner (1)", value: 1, icon: "emoticon-sad-outline" },
+      { name: "Intermediate (2)", value: 2, icon: "emoticon-happy-outline" },
+      { name: "Advanced (3)", value: 3, icon: "star" },
+      { name: "Expert (4)", value: 4, icon: "medal" },
+      { name: "Master (5)", value: 5, icon: "trophy" },
     ],
     singleSelection: true,
   },
 ];
-
 // Tag Component
 const ThemeTag = ({ tag, isSelected, onPress }) => (
   <TouchableOpacity
@@ -113,7 +111,7 @@ const ThemeTag = ({ tag, isSelected, onPress }) => (
     ]}
     onPress={onPress}
   >
-    <Ionicons
+    <MaterialCommunityIcons
       name={tag.icon}
       size={18}
       color={isSelected ? "#fff" : TEXT_DARK}
@@ -278,7 +276,7 @@ export default function HabitCollectionScreen() {
               style={{ marginRight: 10 }}
             />
           ) : (
-            <Ionicons name="save-outline" size={20} color="#fff" />
+            <Ionicons name="save" size={20} color="#fff" />
           )}
 
           <Text style={styles.submitButtonText}>

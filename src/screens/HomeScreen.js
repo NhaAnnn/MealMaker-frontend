@@ -272,7 +272,7 @@ export default function HomeScreen() {
     },
     {
       title: "Skill Quiz", // Lên Kế Hoạch
-      iconName: "medal-outline",
+      iconName: "bird-outline",
       color: "#F1C40F",
       screen: "Quiz",
     },
@@ -448,9 +448,9 @@ export default function HomeScreen() {
                   styles.seeMoreButton,
                   { backgroundColor: PRIMARY_BLUE },
                 ]}
-                onPress={() => navigation.navigate("Explore")}
+                onPress={() => loadFeaturedRecipes()}
               >
-                <Text style={styles.seeMoreButtonText}>See all recipes</Text>
+                <Text style={styles.seeMoreButtonText}>Other recipes</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={18}
